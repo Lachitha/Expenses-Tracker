@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Dashboard from './components/Dashboard'
 import TransactionForm from './components/TransactionForm'
 import TransactionTable from './components/TransactionTable'
@@ -9,7 +9,6 @@ export default function App() {
   const [dbStatus, setDbStatus] = useState('checking')
   const [dbError, setDbError] = useState('')
   const [toast, setToast] = useState(null)
-  const pendingOp = useRef(Promise.resolve())
 
   useEffect(() => {
     fetch('/api/transactions')
@@ -30,33 +29,29 @@ export default function App() {
 
   const addTransaction = t => {
     setTransactions(prev => [...prev, t])
-    pendingOp.current = pendingOp.current.then(() =>
-      fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(t),
-      }).then(async res => {
-        if (!res.ok) {
-          setTransactions(prev => prev.filter(x => x.id !== t.id))
-          showToast((await res.json()).error, 'error')
-        } else {
-          showToast('Saved ✓', 'success')
-        }
-      })
-    )
+    fetch('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(t),
+    }).then(async res => {
+      if (!res.ok) {
+        setTransactions(prev => prev.filter(x => x.id !== t.id))
+        showToast((await res.json()).error, 'error')
+      } else {
+        showToast('Saved ✓', 'success')
+      }
+    })
   }
 
   const deleteTransaction = id => {
     setTransactions(prev => prev.filter(t => t.id !== id))
-    pendingOp.current = pendingOp.current.then(() =>
-      fetch(`/api/transactions?id=${id}`, { method: 'DELETE' }).then(async res => {
-        if (!res.ok) {
-          showToast((await res.json()).error, 'error')
-        } else {
-          showToast('Deleted ✓', 'success')
-        }
-      })
-    )
+    fetch(`/api/transactions?id=${id}`, { method: 'DELETE' }).then(async res => {
+      if (!res.ok) {
+        showToast((await res.json()).error, 'error')
+      } else {
+        showToast('Deleted ✓', 'success')
+      }
+    })
   }
 
   if (loading) {

@@ -1,6 +1,6 @@
-import { put, get } from '@vercel/blob';
+import { list, put, del } from '@vercel/blob';
 
-const BLOB_KEY = 'transactions.json';
+const PREFIX = 'transactions/';
 const NO_CACHE = {
   'content-type': 'application/json',
   'cache-control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -12,24 +12,17 @@ function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: NO_CACHE });
 }
 
-async function getTransactions() {
-  const result = await get(BLOB_KEY, { access: 'private' });
-  if (!result) return [];
-  return new Response(result.stream).json();
-}
-
-async function saveTransactions(transactions) {
-  const result = await put(BLOB_KEY, JSON.stringify(transactions), {
-    contentType: 'application/json',
-    access: 'private',
-    allowOverwrite: true,
-  });
-  if (!result.url) throw new Error('Blob put returned no url');
-}
-
 export async function GET() {
   try {
-    return json(await getTransactions());
+    const { blobs } = await list({ prefix: PREFIX });
+    if (!blobs?.length) return json([]);
+    const items = await Promise.all(
+      blobs.map(b => fetch(b.url, {
+        headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      }).then(r => r.json()))
+    );
+    items.sort((a, b) => a.id - b.id);
+    return json(items);
   } catch (e) {
     console.error('GET error:', e.message);
     return json({ error: e.message }, 500);
@@ -39,9 +32,12 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const transactions = await getTransactions();
-    transactions.push(body);
-    await saveTransactions(transactions);
+    const key = `${PREFIX}${body.id}.json`;
+    const result = await put(key, JSON.stringify(body), {
+      contentType: 'application/json',
+      access: 'private',
+    });
+    if (!result.url) throw new Error('Blob put returned no url');
     return json(body, 201);
   } catch (e) {
     console.error('POST error:', e.message);
@@ -52,9 +48,8 @@ export async function POST(request) {
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const id = Number(searchParams.get('id'));
-    const transactions = await getTransactions();
-    await saveTransactions(transactions.filter(t => t.id !== id));
+    const id = searchParams.get('id');
+    await del(`${PREFIX}${id}.json`);
     return json({ success: true });
   } catch (e) {
     console.error('DELETE error:', e.message);
