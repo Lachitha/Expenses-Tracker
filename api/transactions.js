@@ -1,6 +1,6 @@
 const BLOB_KEY = 'transactions.json';
 const TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
-const BLOB_API = 'https://blob.vercel-storage.com';
+const BLOB_API = 'https://vercel.com/api/blob';
 
 async function getTransactions() {
   const url = `${BLOB_API}/?prefix=${BLOB_KEY}`;
@@ -15,7 +15,8 @@ async function getTransactions() {
 }
 
 async function saveTransactions(transactions) {
-  await fetch(`${BLOB_API}/${BLOB_KEY}`, {
+  const params = new URLSearchParams({ pathname: BLOB_KEY });
+  await fetch(`${BLOB_API}/?${params.toString()}`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${TOKEN}`,
