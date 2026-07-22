@@ -1,16 +1,20 @@
-import { list, put } from '@vercel/blob';
+import { list, put, get } from '@vercel/blob';
 
 const BLOB_KEY = 'transactions.json';
 
 async function getTransactions() {
-  const { blobs } = await list({ prefix: BLOB_KEY });
-  if (!blobs?.length) return [];
-  const url = blobs[0].downloadUrl || blobs[0].url;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
+  try {
+    const blob = await get(BLOB_KEY, { access: 'private' });
+    const url = blob.downloadUrl || blob.url;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    return res.json();
+  } catch (e) {
+    if (e.name === 'BlobNotFoundError') return [];
+    throw e;
+  }
 }
 
 async function saveTransactions(transactions) {
