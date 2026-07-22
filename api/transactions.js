@@ -1,6 +1,16 @@
 import { put, get } from '@vercel/blob';
 
 const BLOB_KEY = 'transactions.json';
+const NO_CACHE = {
+  'content-type': 'application/json',
+  'cache-control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'pragma': 'no-cache',
+  'expires': '0',
+};
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: NO_CACHE });
+}
 
 async function getTransactions() {
   const result = await get(BLOB_KEY, { access: 'private' });
@@ -19,10 +29,10 @@ async function saveTransactions(transactions) {
 
 export async function GET() {
   try {
-    return Response.json(await getTransactions());
+    return json(await getTransactions());
   } catch (e) {
     console.error('GET error:', e.message);
-    return Response.json({ error: e.message }, { status: 500 });
+    return json({ error: e.message }, 500);
   }
 }
 
@@ -32,11 +42,10 @@ export async function POST(request) {
     const transactions = await getTransactions();
     transactions.push(body);
     await saveTransactions(transactions);
-    console.log('POST success:', body.id);
-    return Response.json(body, { status: 201 });
+    return json(body, 201);
   } catch (e) {
     console.error('POST error:', e.message);
-    return Response.json({ error: e.message }, { status: 500 });
+    return json({ error: e.message }, 500);
   }
 }
 
@@ -46,10 +55,9 @@ export async function DELETE(request) {
     const id = Number(searchParams.get('id'));
     const transactions = await getTransactions();
     await saveTransactions(transactions.filter(t => t.id !== id));
-    console.log('DELETE success:', id);
-    return Response.json({ success: true });
+    return json({ success: true });
   } catch (e) {
     console.error('DELETE error:', e.message);
-    return Response.json({ error: e.message }, { status: 500 });
+    return json({ error: e.message }, 500);
   }
 }
