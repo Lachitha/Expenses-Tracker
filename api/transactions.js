@@ -1,20 +1,27 @@
-import { list, put } from '@vercel/blob';
-
 const BLOB_KEY = 'transactions.json';
 const TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+const BLOB_API = 'https://blob.vercel-storage.com';
 
 async function getTransactions() {
-  const { blobs } = await list({ prefix: BLOB_KEY, token: TOKEN });
-  if (blobs.length === 0) return [];
-  const res = await fetch(blobs[0].url);
-  return res.json();
+  const url = `${BLOB_API}/?prefix=${BLOB_KEY}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${TOKEN}` },
+  });
+  if (res.status === 404) return [];
+  const { blobs } = await res.json();
+  if (!blobs || blobs.length === 0) return [];
+  const data = await fetch(blobs[0].url);
+  return data.json();
 }
 
 async function saveTransactions(transactions) {
-  await put(BLOB_KEY, JSON.stringify(transactions), {
-    contentType: 'application/json',
-    access: 'public',
-    token: TOKEN,
+  await fetch(`${BLOB_API}/${BLOB_KEY}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(transactions),
   });
 }
 
@@ -23,7 +30,7 @@ export async function GET() {
     const data = await getTransactions();
     return Response.json(data);
   } catch (e) {
-    return Response.json({ error: e.message, name: e.name }, { status: 500 });
+    return Response.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -35,7 +42,7 @@ export async function POST(request) {
     await saveTransactions(transactions);
     return Response.json(body, { status: 201 });
   } catch (e) {
-    return Response.json({ error: e.message, name: e.name }, { status: 500 });
+    return Response.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -48,6 +55,6 @@ export async function DELETE(request) {
     await saveTransactions(filtered);
     return Response.json({ success: true });
   } catch (e) {
-    return Response.json({ error: e.message, name: e.name }, { status: 500 });
+    return Response.json({ error: e.message }, { status: 500 });
   }
 }
