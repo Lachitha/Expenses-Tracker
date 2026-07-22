@@ -4,8 +4,9 @@ const BLOB_KEY = 'transactions.json';
 
 async function getTransactions() {
   const { blobs } = await list({ prefix: BLOB_KEY });
-  if (blobs.length === 0) return [];
-  const res = await fetch(blobs[0].url);
+  if (!blobs?.length) return [];
+  const url = blobs[0].downloadUrl || blobs[0].url;
+  const res = await fetch(url);
   return res.json();
 }
 
