@@ -12,7 +12,7 @@ async function getTransactions() {
 async function saveTransactions(transactions) {
   await put(BLOB_KEY, JSON.stringify(transactions), {
     contentType: 'application/json',
-    access: 'public',
+    access: 'private',
   });
 }
 
