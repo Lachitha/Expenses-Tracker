@@ -1,9 +1,10 @@
 import { list, put } from '@vercel/blob';
 
 const BLOB_KEY = 'transactions.json';
+const TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
 async function getTransactions() {
-  const { blobs } = await list({ prefix: BLOB_KEY });
+  const { blobs } = await list({ prefix: BLOB_KEY, token: TOKEN });
   if (blobs.length === 0) return [];
   const res = await fetch(blobs[0].url);
   return res.json();
@@ -13,15 +14,16 @@ async function saveTransactions(transactions) {
   await put(BLOB_KEY, JSON.stringify(transactions), {
     contentType: 'application/json',
     access: 'public',
+    token: TOKEN,
   });
 }
 
 export async function GET() {
   try {
-    const transactions = await getTransactions();
-    return Response.json(transactions);
+    const data = await getTransactions();
+    return Response.json(data);
   } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 });
+    return Response.json({ error: e.message, name: e.name }, { status: 500 });
   }
 }
 
@@ -33,7 +35,7 @@ export async function POST(request) {
     await saveTransactions(transactions);
     return Response.json(body, { status: 201 });
   } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 });
+    return Response.json({ error: e.message, name: e.name }, { status: 500 });
   }
 }
 
@@ -46,6 +48,6 @@ export async function DELETE(request) {
     await saveTransactions(filtered);
     return Response.json({ success: true });
   } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 });
+    return Response.json({ error: e.message, name: e.name }, { status: 500 });
   }
 }
