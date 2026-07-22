@@ -17,6 +17,7 @@ async function saveTransactions(transactions) {
   const result = await put(BLOB_KEY, JSON.stringify(transactions), {
     contentType: 'application/json',
     access: 'private',
+    allowOverwrite: true,
   });
   if (!result.url) throw new Error('Blob put returned no url');
 }
