@@ -26,12 +26,14 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(t),
     })
-    const saved = await res.json()
-    setTransactions(prev => [...prev, saved])
+    const data = await res.json()
+    if (!res.ok) { alert('DB Error: ' + data.error); return }
+    setTransactions(prev => [...prev, data])
   }
 
   const deleteTransaction = async id => {
-    await fetch(`/api/transactions?id=${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/transactions?id=${id}`, { method: 'DELETE' })
+    if (!res.ok) { const data = await res.json(); alert('DB Error: ' + data.error); return }
     setTransactions(prev => prev.filter(t => t.id !== id))
   }
 
