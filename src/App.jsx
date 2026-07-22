@@ -7,16 +7,24 @@ export default function App() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [dbStatus, setDbStatus] = useState('checking')
+  const [dbError, setDbError] = useState('')
 
   useEffect(() => {
     fetch('/api/transactions?health')
-      .then(res => res.json())
-      .then(data => setDbStatus(data.status === 'connected' ? 'connected' : 'error'))
+      .then(async res => {
+        const data = await res.json()
+        if (data.status === 'connected') setDbStatus('connected')
+        else { setDbStatus('error'); setDbError(data.error || 'Unknown') }
+      })
       .catch(() => setDbStatus('error'))
 
     fetch('/api/transactions')
-      .then(res => res.json())
-      .then(data => { setTransactions(data); setLoading(false) })
+      .then(async res => {
+        const data = await res.json()
+        if (!res.ok) { setDbStatus('error'); console.error('API:', data) }
+        setTransactions(Array.isArray(data) ? data : [])
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
   }, [])
 
@@ -53,7 +61,7 @@ export default function App() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Expenses Tracker</h1>
             <p className="text-xs sm:text-sm text-gray-500">Track shared expenses between Lachitha & Sudewa</p>
           </div>
-          <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+          <span title={dbError} className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
             dbStatus === 'connected' ? 'bg-green-100 text-green-700' :
             dbStatus === 'error' ? 'bg-red-100 text-red-700' :
             'bg-gray-100 text-gray-500'
