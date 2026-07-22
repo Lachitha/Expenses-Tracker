@@ -1,4 +1,4 @@
-import { list, put, get } from '@vercel/blob';
+import { put, get } from '@vercel/blob';
 
 const BLOB_KEY = 'transactions.json';
 
@@ -17,20 +17,7 @@ async function saveTransactions(transactions) {
   if (!result.url) throw new Error('Blob put returned no url');
 }
 
-export async function GET(request) {
-  const url = new URL(request.url);
-
-  if (url.searchParams.has('health')) {
-    try {
-      await list({ prefix: BLOB_KEY, limit: 1 });
-      console.log('Blob connection OK');
-      return Response.json({ status: 'connected' });
-    } catch (e) {
-      console.error('Blob connection error:', e.message);
-      return Response.json({ status: 'error', error: e.message }, { status: 500 });
-    }
-  }
-
+export async function GET() {
   try {
     return Response.json(await getTransactions());
   } catch (e) {

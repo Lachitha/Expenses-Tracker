@@ -10,22 +10,15 @@ export default function App() {
   const [dbError, setDbError] = useState('')
 
   useEffect(() => {
-    fetch('/api/transactions?health')
-      .then(async res => {
-        const data = await res.json()
-        if (data.status === 'connected') setDbStatus('connected')
-        else { setDbStatus('error'); setDbError(data.error || 'Unknown') }
-      })
-      .catch(() => setDbStatus('error'))
-
     fetch('/api/transactions')
       .then(async res => {
         const data = await res.json()
-        if (!res.ok) { setDbStatus('error'); console.error('API:', data) }
+        if (!res.ok) { setDbStatus('error'); setDbError(data.error || 'Unknown'); setLoading(false); return }
+        setDbStatus('connected')
         setTransactions(Array.isArray(data) ? data : [])
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => { setDbStatus('error'); setLoading(false) })
   }, [])
 
   const addTransaction = async t => {
