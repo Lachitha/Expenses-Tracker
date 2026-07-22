@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Dashboard from './components/Dashboard'
 import TransactionForm from './components/TransactionForm'
 import TransactionTable from './components/TransactionTable'
@@ -8,6 +8,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [dbStatus, setDbStatus] = useState('checking')
   const [dbError, setDbError] = useState('')
+  const pendingOp = useRef(Promise.resolve())
 
   useEffect(() => {
     fetch('/api/transactions')
@@ -23,26 +24,30 @@ export default function App() {
 
   const addTransaction = t => {
     setTransactions(prev => [...prev, t])
-    fetch('/api/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(t),
-    }).then(async res => {
-      if (!res.ok) {
-        setTransactions(prev => prev.filter(x => x.id !== t.id))
-        alert('DB Error: ' + (await res.json()).error)
-      }
-    })
+    pendingOp.current = pendingOp.current.then(() =>
+      fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(t),
+      }).then(async res => {
+        if (!res.ok) {
+          setTransactions(prev => prev.filter(x => x.id !== t.id))
+          alert('DB Error: ' + (await res.json()).error)
+        }
+      })
+    )
   }
 
   const deleteTransaction = id => {
     setTransactions(prev => prev.filter(t => t.id !== id))
-    fetch(`/api/transactions?id=${id}`, { method: 'DELETE' }).then(async res => {
-      if (!res.ok) {
-        setDbStatus('error')
-        setDbError((await res.json()).error)
-      }
-    })
+    pendingOp.current = pendingOp.current.then(() =>
+      fetch(`/api/transactions?id=${id}`, { method: 'DELETE' }).then(async res => {
+        if (!res.ok) {
+          setDbStatus('error')
+          setDbError((await res.json()).error)
+        }
+      })
+    )
   }
 
   if (loading) {
