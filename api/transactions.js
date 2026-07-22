@@ -6,15 +6,19 @@ async function getTransactions() {
   const { blobs } = await list({ prefix: BLOB_KEY });
   if (!blobs?.length) return [];
   const url = blobs[0].downloadUrl || blobs[0].url;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
 async function saveTransactions(transactions) {
-  await put(BLOB_KEY, JSON.stringify(transactions), {
+  const result = await put(BLOB_KEY, JSON.stringify(transactions), {
     contentType: 'application/json',
     access: 'private',
   });
+  if (!result.url) throw new Error('Blob put returned no url');
 }
 
 export async function GET(request) {
