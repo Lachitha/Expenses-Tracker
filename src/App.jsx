@@ -21,21 +21,28 @@ export default function App() {
       .catch(() => { setDbStatus('error'); setLoading(false) })
   }, [])
 
-  const addTransaction = async t => {
-    const res = await fetch('/api/transactions', {
+  const addTransaction = t => {
+    setTransactions(prev => [...prev, t])
+    fetch('/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(t),
+    }).then(async res => {
+      if (!res.ok) {
+        setTransactions(prev => prev.filter(x => x.id !== t.id))
+        alert('DB Error: ' + (await res.json()).error)
+      }
     })
-    const data = await res.json()
-    if (!res.ok) { alert('DB Error: ' + data.error); return }
-    setTransactions(prev => [...prev, data])
   }
 
-  const deleteTransaction = async id => {
-    const res = await fetch(`/api/transactions?id=${id}`, { method: 'DELETE' })
-    if (!res.ok) { const data = await res.json(); alert('DB Error: ' + data.error); return }
+  const deleteTransaction = id => {
     setTransactions(prev => prev.filter(t => t.id !== id))
+    fetch(`/api/transactions?id=${id}`, { method: 'DELETE' }).then(async res => {
+      if (!res.ok) {
+        setDbStatus('error')
+        setDbError((await res.json()).error)
+      }
+    })
   }
 
   if (loading) {

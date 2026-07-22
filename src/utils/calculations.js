@@ -17,9 +17,13 @@ export function getStatus(balance) {
 }
 
 export function getDashboardMetrics(transactions) {
-  const expenses = transactions.filter(t => t.type === 'Expense')
-  const totalExpenses = expenses.reduce((s, t) => s + Number(t.totalAmount), 0)
-  const lachithaPaid = expenses.filter(t => t.paidBy === 'Lachitha').reduce((s, t) => s + Number(t.totalAmount), 0)
-  const sudowaPaid = expenses.filter(t => t.paidBy === 'Sudewa').reduce((s, t) => s + Number(t.totalAmount), 0)
+  let totalExpenses = 0, lachithaPaid = 0, sudowaPaid = 0
+  for (const t of transactions) {
+    if (t.type !== 'Expense') continue
+    const amt = Number(t.totalAmount)
+    totalExpenses += amt
+    if (t.paidBy === 'Lachitha') lachithaPaid += amt
+    else sudowaPaid += amt
+  }
   return { totalExpenses, lachithaPaid, sudowaPaid }
 }
