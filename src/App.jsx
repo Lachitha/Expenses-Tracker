@@ -8,6 +8,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [dbStatus, setDbStatus] = useState('checking')
   const [dbError, setDbError] = useState('')
+  const [toast, setToast] = useState(null)
   const pendingOp = useRef(Promise.resolve())
 
   useEffect(() => {
@@ -22,6 +23,11 @@ export default function App() {
       .catch(() => { setDbStatus('error'); setLoading(false) })
   }, [])
 
+  const showToast = (msg, type) => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 2500)
+  }
+
   const addTransaction = t => {
     setTransactions(prev => [...prev, t])
     pendingOp.current = pendingOp.current.then(() =>
@@ -32,7 +38,9 @@ export default function App() {
       }).then(async res => {
         if (!res.ok) {
           setTransactions(prev => prev.filter(x => x.id !== t.id))
-          alert('DB Error: ' + (await res.json()).error)
+          showToast((await res.json()).error, 'error')
+        } else {
+          showToast('Saved ✓', 'success')
         }
       })
     )
@@ -43,8 +51,9 @@ export default function App() {
     pendingOp.current = pendingOp.current.then(() =>
       fetch(`/api/transactions?id=${id}`, { method: 'DELETE' }).then(async res => {
         if (!res.ok) {
-          setDbStatus('error')
-          setDbError((await res.json()).error)
+          showToast((await res.json()).error, 'error')
+        } else {
+          showToast('Deleted ✓', 'success')
         }
       })
     )
@@ -84,6 +93,14 @@ export default function App() {
         <TransactionForm onAdd={addTransaction} />
         <TransactionTable transactions={transactions} onDelete={deleteTransaction} />
       </div>
+
+      {toast && (
+        <div className={`fixed bottom-4 right-4 px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg transition-all z-50 ${
+          toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.msg}
+        </div>
+      )}
     </div>
   )
 }
