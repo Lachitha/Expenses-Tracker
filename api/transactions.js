@@ -17,23 +17,35 @@ async function saveTransactions(transactions) {
 }
 
 export async function GET() {
-  const transactions = await getTransactions();
-  return Response.json(transactions);
+  try {
+    const transactions = await getTransactions();
+    return Response.json(transactions);
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
 }
 
 export async function POST(request) {
-  const body = await request.json();
-  const transactions = await getTransactions();
-  transactions.push(body);
-  await saveTransactions(transactions);
-  return Response.json(body, { status: 201 });
+  try {
+    const body = await request.json();
+    const transactions = await getTransactions();
+    transactions.push(body);
+    await saveTransactions(transactions);
+    return Response.json(body, { status: 201 });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
 }
 
 export async function DELETE(request) {
-  const { searchParams } = new URL(request.url);
-  const id = Number(searchParams.get('id'));
-  const transactions = await getTransactions();
-  const filtered = transactions.filter(t => t.id !== id);
-  await saveTransactions(filtered);
-  return Response.json({ success: true });
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = Number(searchParams.get('id'));
+    const transactions = await getTransactions();
+    const filtered = transactions.filter(t => t.id !== id);
+    await saveTransactions(filtered);
+    return Response.json({ success: true });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
 }
