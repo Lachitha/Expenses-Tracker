@@ -176,6 +176,17 @@ function PersonalTracker() {
   }
 
   const deleteCategory = async id => {
+    const pm = paymentMethods.find(p => p.id === id)
+    if (pm) {
+      const cardEntry = Object.entries(settings?.creditCards || {}).find(([, c]) => c.name === pm.name)
+      if (cardEntry) {
+        const [cardId] = cardEntry
+        const updated = { ...settings }
+        delete updated.creditCards[cardId]
+        setSettings(updated)
+        saveSettings(updated)
+      }
+    }
     await fetch(`/api/personal/categories?id=${id}`, { method: 'DELETE', headers: authHeaders })
     setCategories(prev => prev.filter(c => c.id !== id))
     setPaymentMethods(prev => prev.filter(p => p.id !== id))
@@ -236,6 +247,7 @@ function PersonalTracker() {
     }
     setSettings(updated)
     saveSettings(updated)
+    addCategory({ name: newCard.name.trim(), itemType: 'paymentMethod' })
     setNewCard({ name: '', creditLimit: '' })
   }
 
@@ -246,14 +258,24 @@ function PersonalTracker() {
     }
     setSettings(updated)
     saveSettings(updated)
+    const oldName = settings.creditCards[id]?.name
+    if (updates.name && updates.name !== oldName) {
+      const pm = paymentMethods.find(p => p.name === oldName)
+      if (pm) editCategory(pm.id, { name: updates.name })
+    }
     setEditingCard(null)
   }
 
   const deleteCard = id => {
+    const cardName = settings.creditCards[id]?.name
     const updated = { ...settings }
     delete updated.creditCards[id]
     setSettings(updated)
     saveSettings(updated)
+    if (cardName) {
+      const pm = paymentMethods.find(p => p.name === cardName)
+      if (pm) deleteCategory(pm.id)
+    }
   }
 
   if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
