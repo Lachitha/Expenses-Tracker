@@ -32,6 +32,7 @@ export async function GET(request) {
     const resp = await fetch(settingsFile.url, {
       headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
     });
+    if (!resp.ok) return json(DEFAULT_SETTINGS);
     const settings = await resp.json();
     return json({ ...DEFAULT_SETTINGS, ...settings });
   } catch (e) {
@@ -47,10 +48,14 @@ export async function POST(request) {
 
     const body = await request.json();
     const key = `settings/${user.id}/settings.json`;
-    await put(key, JSON.stringify(body), {
+    const data = JSON.stringify(body);
+
+    await put(key, data, {
       contentType: 'application/json',
-      access: 'private',
+      access: 'public',
+      addRandomSuffix: false,
     });
+
     return json(body);
   } catch (e) {
     console.error('POST settings error:', e.message);
