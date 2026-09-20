@@ -41,7 +41,7 @@ export async function POST(request) {
     await put(`users/${normalizedEmail}.json`, JSON.stringify(user), {
       contentType: 'application/json',
       access: 'public',
-      addRandomSuffix: false,
+      allowOverwrite: true,
     });
 
     const token = sign({ id: user.id, email: user.email, name: user.name });

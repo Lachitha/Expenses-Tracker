@@ -77,7 +77,7 @@ export async function POST(request) {
     await put(key, JSON.stringify(item), {
       contentType: 'application/json',
       access: 'public',
-      addRandomSuffix: false,
+      allowOverwrite: true,
     });
     return json(item, 201);
   } catch (e) {
@@ -106,7 +106,7 @@ export async function PUT(request) {
     await put(key, JSON.stringify(updated), {
       contentType: 'application/json',
       access: 'public',
-      addRandomSuffix: false,
+      allowOverwrite: true,
     });
     return json(updated);
   } catch (e) {

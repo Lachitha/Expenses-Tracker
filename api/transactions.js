@@ -36,7 +36,7 @@ export async function POST(request) {
     const result = await put(key, JSON.stringify(body), {
       contentType: 'application/json',
       access: 'public',
-      addRandomSuffix: false,
+      allowOverwrite: true,
     });
     if (!result.url) throw new Error('Blob put returned no url');
     return json(body, 201);

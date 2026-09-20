@@ -52,7 +52,7 @@ export async function POST(request) {
     await put(key, JSON.stringify(archive), {
       contentType: 'application/json',
       access: 'public',
-      addRandomSuffix: false,
+      allowOverwrite: true,
     });
     return json(archive, 201);
   } catch (e) {

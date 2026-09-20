@@ -44,7 +44,7 @@ export async function POST(request) {
     await put(key, JSON.stringify(body), {
       contentType: 'application/json',
       access: 'public',
-      addRandomSuffix: false,
+      allowOverwrite: true,
     });
     return json(body, 201);
   } catch (e) {
