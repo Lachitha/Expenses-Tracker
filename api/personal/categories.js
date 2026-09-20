@@ -76,7 +76,7 @@ export async function POST(request) {
     const key = `categories/${user.id}/${item.id}.json`;
     await put(key, JSON.stringify(item), {
       contentType: 'application/json',
-      access: 'public',
+      access: 'private',
       allowOverwrite: true,
     });
     return json(item, 201);
@@ -105,7 +105,7 @@ export async function PUT(request) {
 
     await put(key, JSON.stringify(updated), {
       contentType: 'application/json',
-      access: 'public',
+      access: 'private',
       allowOverwrite: true,
     });
     return json(updated);

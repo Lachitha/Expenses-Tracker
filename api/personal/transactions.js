@@ -43,7 +43,7 @@ export async function POST(request) {
     const key = `personal/${user.id}/${body.id}.json`;
     await put(key, JSON.stringify(body), {
       contentType: 'application/json',
-      access: 'public',
+      access: 'private',
       allowOverwrite: true,
     });
     return json(body, 201);

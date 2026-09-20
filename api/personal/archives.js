@@ -51,7 +51,7 @@ export async function POST(request) {
     const key = `archives/${user.id}/${archive.id}.json`;
     await put(key, JSON.stringify(archive), {
       contentType: 'application/json',
-      access: 'public',
+      access: 'private',
       allowOverwrite: true,
     });
     return json(archive, 201);

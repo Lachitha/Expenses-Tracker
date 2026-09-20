@@ -52,7 +52,7 @@ export async function POST(request) {
 
     await put(key, data, {
       contentType: 'application/json',
-      access: 'public',
+      access: 'private',
       allowOverwrite: true,
     });
 

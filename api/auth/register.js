@@ -40,7 +40,7 @@ export async function POST(request) {
 
     await put(`users/${normalizedEmail}.json`, JSON.stringify(user), {
       contentType: 'application/json',
-      access: 'public',
+      access: 'private',
       allowOverwrite: true,
     });
 
