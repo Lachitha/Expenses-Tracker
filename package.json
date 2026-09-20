@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.6.1",
+    "bcryptjs": "^3.0.3",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
