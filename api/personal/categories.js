@@ -76,7 +76,8 @@ export async function POST(request) {
     const key = `categories/${user.id}/${item.id}.json`;
     await put(key, JSON.stringify(item), {
       contentType: 'application/json',
-      access: 'private',
+      access: 'public',
+      addRandomSuffix: false,
     });
     return json(item, 201);
   } catch (e) {
@@ -104,7 +105,8 @@ export async function PUT(request) {
 
     await put(key, JSON.stringify(updated), {
       contentType: 'application/json',
-      access: 'private',
+      access: 'public',
+      addRandomSuffix: false,
     });
     return json(updated);
   } catch (e) {

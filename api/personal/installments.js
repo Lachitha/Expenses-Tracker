@@ -53,7 +53,8 @@ export async function POST(request) {
     const key = `installments/${user.id}/${installment.id}.json`;
     await put(key, JSON.stringify(installment), {
       contentType: 'application/json',
-      access: 'private',
+      access: 'public',
+      addRandomSuffix: false,
     });
     return json(installment, 201);
   } catch (e) {
