@@ -171,6 +171,21 @@ function PersonalTracker() {
     if (res.ok) {
       setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c))
       setPaymentMethods(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
+      if (updates.name) {
+        const pm = paymentMethods.find(p => p.id === id)
+        if (pm) {
+          const cardEntry = Object.entries(settings?.creditCards || {}).find(([, c]) => c.name === pm.name)
+          if (cardEntry) {
+            const [cardId, card] = cardEntry
+            const updated = {
+              ...settings,
+              creditCards: { ...settings.creditCards, [cardId]: { ...card, name: updates.name } }
+            }
+            setSettings(updated)
+            saveSettings(updated)
+          }
+        }
+      }
       showToast('Updated', 'success')
     }
   }

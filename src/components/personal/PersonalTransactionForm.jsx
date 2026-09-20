@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-export default function PersonalTransactionForm({ onAdd, categories, paymentMethods, onSaveSavings }) {
+export default function PersonalTransactionForm({ onAdd, categories, paymentMethods, settings, onSaveSavings }) {
   const today = new Date().toISOString().split('T')[0]
   const [form, setForm] = useState({
     date: today,
@@ -24,9 +24,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
     return c.type === 'expense'
   })
 
-  const creditCards = paymentMethods.filter(pm =>
-    pm.name.toLowerCase().includes('credit card')
-  )
+  const creditCards = Object.values(settings?.creditCards || {})
 
   useEffect(() => {
     if (filteredCategories.length > 0 && !filteredCategories.find(c => c.id === form.category)) {
@@ -121,8 +119,8 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
             <label className={labelClass}>Settle Which Card</label>
             <select value={form.toCard} onChange={e => update('toCard', e.target.value)} className={inputClass} required>
               <option value="">Select card...</option>
-              {creditCards.map(pm => (
-                <option key={pm.id} value={pm.name}>{pm.name}</option>
+              {creditCards.map(card => (
+                <option key={card.name} value={card.name}>{card.name}</option>
               ))}
             </select>
           </div>

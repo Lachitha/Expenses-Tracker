@@ -37,11 +37,6 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
     setEditForm({ name: '', type: '' })
   }
 
-  const builtinCategories = categories.filter(c => c.builtin)
-  const customCategories = categories.filter(c => !c.builtin)
-  const builtinPayment = paymentMethods.filter(p => p.builtin)
-  const customPayment = paymentMethods.filter(p => !p.builtin)
-
   const inputClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 
   return (
@@ -60,22 +55,9 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
       {activeTab === 'categories' && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Built-in Categories</h3>
-            <div className="flex flex-wrap gap-2">
-              {builtinCategories.map(c => (
-                <span key={c.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                  {c.name}
-                  <span className={`text-[10px] px-1 rounded ${c.type === 'income' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>{c.type}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Custom Categories</h3>
-            {customCategories.length === 0 && <p className="text-xs text-gray-400">No custom categories yet.</p>}
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Categories</h3>
             <div className="space-y-2">
-              {customCategories.map(c => (
+              {categories.map(c => (
                 <div key={c.id} className="flex items-center gap-2">
                   {editingId === c.id ? (
                     <>
@@ -88,11 +70,11 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
                       <button onClick={cancelEdit} className="text-xs text-gray-400 hover:underline">Cancel</button>
                     </>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${c.builtin ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>
                       {c.name}
                       <span className={`text-[10px] px-1 rounded ${c.type === 'income' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>{c.type}</span>
                       <button onClick={() => startEdit(c)} className="ml-1 text-blue-400 hover:text-blue-600">&#9998;</button>
-                      <button onClick={() => onDelete(c.id)} className="text-blue-400 hover:text-red-500">&times;</button>
+                      {!c.builtin && <button onClick={() => onDelete(c.id)} className="text-blue-400 hover:text-red-500">&times;</button>}
                     </span>
                   )}
                 </div>
@@ -114,19 +96,9 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
       {activeTab === 'payment' && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Built-in Payment Methods</h3>
-            <div className="flex flex-wrap gap-2">
-              {builtinPayment.map(p => (
-                <span key={p.id} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{p.name}</span>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Custom Payment Methods</h3>
-            {customPayment.length === 0 && <p className="text-xs text-gray-400">No custom payment methods yet.</p>}
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Payment Methods</h3>
             <div className="space-y-2">
-              {customPayment.map(p => (
+              {paymentMethods.map(p => (
                 <div key={p.id} className="flex items-center gap-2">
                   {editingId === p.id ? (
                     <>
@@ -135,10 +107,10 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
                       <button onClick={cancelEdit} className="text-xs text-gray-400 hover:underline">Cancel</button>
                     </>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${p.builtin ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>
                       {p.name}
                       <button onClick={() => startEdit(p)} className="ml-1 text-blue-400 hover:text-blue-600">&#9998;</button>
-                      <button onClick={() => onDelete(p.id)} className="text-blue-400 hover:text-red-500">&times;</button>
+                      {!p.builtin && <button onClick={() => onDelete(p.id)} className="text-blue-400 hover:text-red-500">&times;</button>}
                     </span>
                   )}
                 </div>

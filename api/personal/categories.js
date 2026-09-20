@@ -29,6 +29,18 @@ const DEFAULT_PAYMENT_METHODS = [
   { id: 'debit-card-usd', name: 'Debit Card USD', builtin: true },
 ];
 
+function isBuiltinId(id) {
+  return [...DEFAULT_CATEGORIES, ...DEFAULT_PAYMENT_METHODS].some(d => d.id === id);
+}
+
+function isBuiltinCategory(id) {
+  return DEFAULT_CATEGORIES.some(d => d.id === id);
+}
+
+function isBuiltinPayment(id) {
+  return DEFAULT_PAYMENT_METHODS.some(d => d.id === id);
+}
+
 export async function GET(request) {
   try {
     const user = getUserFromRequest(request);
@@ -36,22 +48,33 @@ export async function GET(request) {
 
     const { blobs } = await list({ prefix: `categories/${user.id}/` });
 
-    let customCategories = [];
-    let customPaymentMethods = [];
+    let allItems = [];
 
     if (blobs?.length) {
-      const items = await Promise.all(
+      allItems = await Promise.all(
         blobs.map(b => fetch(b.url, {
           headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
         }).then(r => r.json()))
       );
-      customCategories = items.filter(i => i.itemType === 'category');
-      customPaymentMethods = items.filter(i => i.itemType === 'paymentMethod');
     }
 
+    const customCategories = allItems.filter(i => i.itemType === 'category' && !isBuiltinId(i.id));
+    const customPaymentMethods = allItems.filter(i => i.itemType === 'paymentMethod' && !isBuiltinId(i.id));
+    const overrides = allItems.filter(i => isBuiltinId(i.id));
+
+    const mergedCategories = DEFAULT_CATEGORIES.map(c => {
+      const override = overrides.find(o => o.id === c.id);
+      return override ? { ...c, name: override.name, type: override.type || c.type } : c;
+    }).concat(customCategories);
+
+    const mergedPaymentMethods = DEFAULT_PAYMENT_METHODS.map(p => {
+      const override = overrides.find(o => o.id === p.id);
+      return override ? { ...p, name: override.name } : p;
+    }).concat(customPaymentMethods);
+
     return json({
-      categories: [...DEFAULT_CATEGORIES, ...customCategories],
-      paymentMethods: [...DEFAULT_PAYMENT_METHODS, ...customPaymentMethods],
+      categories: mergedCategories,
+      paymentMethods: mergedPaymentMethods,
     });
   } catch (e) {
     console.error('GET categories error:', e.message);
@@ -92,16 +115,35 @@ export async function PUT(request) {
     if (!user) return json({ error: 'Unauthorized' }, 401);
 
     const body = await request.json();
-    const key = `categories/${user.id}/${body.id}.json`;
-    
-    const { blobs } = await list({ prefix: `categories/${user.id}/${body.id}` });
-    if (!blobs?.length) return json({ error: 'Not found' }, 404);
+    const id = body.id;
+    const key = `categories/${user.id}/${id}.json`;
 
-    const existingResp = await fetch(blobs[0].url, {
-      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-    });
-    const existing = await existingResp.json();
-    const updated = { ...existing, ...body };
+    const isBuiltin = isBuiltinId(id);
+    let existing = null;
+
+    if (!isBuiltin) {
+      const { blobs } = await list({ prefix: `categories/${user.id}/${id}` });
+      if (blobs?.length) {
+        const resp = await fetch(blobs[0].url, {
+          headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+        });
+        existing = await resp.json();
+      }
+    }
+
+    let updated;
+    if (existing) {
+      updated = { ...existing, ...body };
+    } else if (isBuiltin) {
+      updated = {
+        id,
+        name: body.name,
+        itemType: isBuiltinCategory(id) ? 'category' : 'paymentMethod',
+        type: body.type,
+      };
+    } else {
+      return json({ error: 'Not found' }, 404);
+    }
 
     await put(key, JSON.stringify(updated), {
       contentType: 'application/json',
@@ -122,6 +164,9 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    if (isBuiltinId(id)) {
+      return json({ error: 'Cannot delete built-in items' }, 400);
+    }
     await del(`categories/${user.id}/${id}.json`);
     return json({ success: true });
   } catch (e) {
