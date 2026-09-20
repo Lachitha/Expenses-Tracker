@@ -1,0 +1,157 @@
+import { useState } from 'react'
+
+export default function CategoryManager({ categories, paymentMethods, onAdd, onEdit, onDelete }) {
+  const [newCat, setNewCat] = useState({ name: '', type: 'expense' })
+  const [newPm, setNewPm] = useState('')
+  const [activeTab, setActiveTab] = useState('categories')
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState({ name: '', type: '' })
+
+  const handleAddCategory = async e => {
+    e.preventDefault()
+    if (!newCat.name.trim()) return
+    await onAdd({ name: newCat.name.trim(), type: newCat.type, itemType: 'category' })
+    setNewCat({ name: '', type: 'expense' })
+  }
+
+  const handleAddPayment = async e => {
+    e.preventDefault()
+    if (!newPm.trim()) return
+    await onAdd({ name: newPm.trim(), itemType: 'paymentMethod' })
+    setNewPm('')
+  }
+
+  const startEdit = item => {
+    setEditingId(item.id)
+    setEditForm({ name: item.name, type: item.type || '' })
+  }
+
+  const saveEdit = async id => {
+    if (!editForm.name.trim()) return
+    await onEdit(id, editForm)
+    setEditingId(null)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditForm({ name: '', type: '' })
+  }
+
+  const builtinCategories = categories.filter(c => c.builtin)
+  const customCategories = categories.filter(c => !c.builtin)
+  const builtinPayment = paymentMethods.filter(p => p.builtin)
+  const customPayment = paymentMethods.filter(p => !p.builtin)
+
+  const inputClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 space-y-4">
+      <h2 className="text-base sm:text-lg font-semibold text-gray-800">Manage Categories & Payment Methods</h2>
+
+      <div className="flex gap-2 border-b border-gray-200">
+        <button onClick={() => setActiveTab('categories')} className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'categories' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+          Categories
+        </button>
+        <button onClick={() => setActiveTab('payment')} className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'payment' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+          Payment Methods
+        </button>
+      </div>
+
+      {activeTab === 'categories' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Built-in Categories</h3>
+            <div className="flex flex-wrap gap-2">
+              {builtinCategories.map(c => (
+                <span key={c.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                  {c.name}
+                  <span className={`text-[10px] px-1 rounded ${c.type === 'income' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>{c.type}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Custom Categories</h3>
+            {customCategories.length === 0 && <p className="text-xs text-gray-400">No custom categories yet.</p>}
+            <div className="space-y-2">
+              {customCategories.map(c => (
+                <div key={c.id} className="flex items-center gap-2">
+                  {editingId === c.id ? (
+                    <>
+                      <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={`${inputClass} flex-1`} />
+                      <select value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))} className="rounded-lg border border-gray-300 px-2 py-2 text-xs">
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                      </select>
+                      <button onClick={() => saveEdit(c.id)} className="text-xs text-green-600 hover:underline">Save</button>
+                      <button onClick={cancelEdit} className="text-xs text-gray-400 hover:underline">Cancel</button>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      {c.name}
+                      <span className={`text-[10px] px-1 rounded ${c.type === 'income' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>{c.type}</span>
+                      <button onClick={() => startEdit(c)} className="ml-1 text-blue-400 hover:text-blue-600">&#9998;</button>
+                      <button onClick={() => onDelete(c.id)} className="text-blue-400 hover:text-red-500">&times;</button>
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleAddCategory} className="flex gap-2">
+            <input type="text" value={newCat.name} onChange={e => setNewCat(f => ({ ...f, name: e.target.value }))} placeholder="New category name" className={`${inputClass} flex-1`} />
+            <select value={newCat.type} onChange={e => setNewCat(f => ({ ...f, type: e.target.value }))} className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">Add</button>
+          </form>
+        </div>
+      )}
+
+      {activeTab === 'payment' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Built-in Payment Methods</h3>
+            <div className="flex flex-wrap gap-2">
+              {builtinPayment.map(p => (
+                <span key={p.id} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{p.name}</span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Custom Payment Methods</h3>
+            {customPayment.length === 0 && <p className="text-xs text-gray-400">No custom payment methods yet.</p>}
+            <div className="space-y-2">
+              {customPayment.map(p => (
+                <div key={p.id} className="flex items-center gap-2">
+                  {editingId === p.id ? (
+                    <>
+                      <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={`${inputClass} flex-1`} />
+                      <button onClick={() => saveEdit(p.id)} className="text-xs text-green-600 hover:underline">Save</button>
+                      <button onClick={cancelEdit} className="text-xs text-gray-400 hover:underline">Cancel</button>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      {p.name}
+                      <button onClick={() => startEdit(p)} className="ml-1 text-blue-400 hover:text-blue-600">&#9998;</button>
+                      <button onClick={() => onDelete(p.id)} className="text-blue-400 hover:text-red-500">&times;</button>
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleAddPayment} className="flex gap-2">
+            <input type="text" value={newPm} onChange={e => setNewPm(e.target.value)} placeholder="New payment method" className={`${inputClass} flex-1`} />
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">Add</button>
+          </form>
+        </div>
+      )}
+    </div>
+  )
+}
