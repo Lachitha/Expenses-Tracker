@@ -149,11 +149,54 @@ function PersonalTracker() {
   }
 
   const deleteTransaction = id => {
-    setTransactions(prev => prev.filter(t => t.id !== id))
-    fetch(`/api/personal/transactions?id=${id}`, { method: 'DELETE', headers: authHeaders }).then(async res => {
-      if (!res.ok) showToast((await res.json()).error, 'error')
+    const transaction = transactions.find(t => t.id === id)
+    const linkedSavings = transactions.filter(t =>
+      t.type === 'saving' && (t.id === id || (transaction?.type === 'income' && t.sourceTransactionId === id))
+    )
+    const idsToDelete = new Set([id, ...linkedSavings.map(t => t.id)])
+
+    setTransactions(prev => prev.filter(t => !idsToDelete.has(t.id)))
+    setSavings(prev => prev.filter(s =>
+      !idsToDelete.has(s.id) && !(transaction?.type === 'income' && s.sourceTransactionId === id)
+    ))
+
+    Promise.all([...idsToDelete].map(transactionId =>
+      fetch(`/api/personal/transactions?id=${transactionId}`, { method: 'DELETE', headers: authHeaders })
+    )).then(async responses => {
+      const failedResponse = responses.find(res => !res.ok)
+      if (failedResponse) showToast((await failedResponse.json()).error, 'error')
       else showToast('Deleted', 'success')
-    })
+    }).catch(() => showToast('Could not delete transaction', 'error'))
+  }
+
+  const editTransaction = updatedTransaction => {
+    const currentTransaction = transactions.find(t => t.id === updatedTransaction.id)
+    const linkedSavings = currentTransaction?.type === 'income'
+      ? transactions.filter(t => t.type === 'saving' && t.sourceTransactionId === updatedTransaction.id)
+      : []
+    const updatedSavings = linkedSavings.map(saving => ({
+      ...saving,
+      date: updatedTransaction.date,
+      description: `Savings from ${updatedTransaction.description}`,
+    }))
+
+    setTransactions(prev => prev.map(t => {
+      if (t.id === updatedTransaction.id) return updatedTransaction
+      return updatedSavings.find(s => s.id === t.id) || t
+    }))
+    setSavings(prev => prev.map(s => updatedSavings.find(updated => updated.id === s.id) || s))
+
+    Promise.all([updatedTransaction, ...updatedSavings].map(transaction =>
+      fetch('/api/personal/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify(transaction),
+      })
+    )).then(async responses => {
+      const failedResponse = responses.find(res => !res.ok)
+      if (failedResponse) showToast((await failedResponse.json()).error, 'error')
+      else showToast('Updated', 'success')
+    }).catch(() => showToast('Could not update transaction', 'error'))
   }
 
   const addCategory = async item => {
@@ -297,18 +340,25 @@ function PersonalTracker() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <a href="/" className="text-sm text-blue-600 hover:underline font-medium">&larr; Shared Expenses</a>
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-gray-500">Welcome, {user?.name}</p>
-          <button onClick={logout} className="text-sm text-gray-500 hover:text-red-600 transition-colors">Sign Out</button>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <p className="max-w-32 truncate text-xs text-gray-500 sm:max-w-none sm:text-sm">Welcome, {user?.name}</p>
+          <button onClick={logout} className="min-h-10 rounded-lg px-2 text-sm text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600">Sign Out</button>
         </div>
       </div>
 
       <Charts transactions={transactions} settings={settings} savings={savings} installments={installments} onCardClick={setSelectedCard} />
       <PersonalDashboard transactions={transactions} settings={settings} savings={savings} />
       <PersonalTransactionForm onAdd={addTransaction} categories={categories} paymentMethods={paymentMethods} settings={settings} onSaveSavings={saveSavings} />
-      <PersonalTransactionTable transactions={transactions} onDelete={deleteTransaction} categories={categories} paymentMethods={paymentMethods} />
+      <PersonalTransactionTable
+        transactions={transactions}
+        onDelete={deleteTransaction}
+        onEdit={editTransaction}
+        categories={categories}
+        paymentMethods={paymentMethods}
+        creditCards={Object.values(settings?.creditCards || {})}
+      />
       <ArchiveManager
         authHeaders={authHeaders}
         transactions={transactions}
@@ -317,11 +367,11 @@ function PersonalTracker() {
         onArchiveComplete={handleArchiveComplete}
       />
 
-      <div className="flex flex-wrap gap-3">
-        <button onClick={() => setShowCategories(!showCategories)} className="text-sm text-blue-600 hover:underline font-medium">
+      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+        <button onClick={() => setShowCategories(!showCategories)} className="min-h-11 rounded-lg border border-blue-100 bg-white px-3 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 sm:border-0 sm:bg-transparent sm:px-0 sm:hover:underline">
           {showCategories ? 'Hide' : 'Manage'} Categories & Payment Methods
         </button>
-        <button onClick={() => setShowSettings(!showSettings)} className="text-sm text-blue-600 hover:underline font-medium">
+        <button onClick={() => setShowSettings(!showSettings)} className="min-h-11 rounded-lg border border-blue-100 bg-white px-3 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 sm:border-0 sm:bg-transparent sm:px-0 sm:hover:underline">
           {showSettings ? 'Hide' : 'Manage'} Credit Cards
         </button>
       </div>
@@ -345,18 +395,18 @@ function PersonalTracker() {
 
           <div className="space-y-2">
             {Object.entries(settings?.creditCards || {}).map(([id, card]) => (
-              <div key={id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+              <div key={id} className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-2">
                 {editingCard === id ? (
                   <>
                     <input type="text" value={card.name} onChange={e => {
                       const updated = { ...settings, creditCards: { ...settings.creditCards, [id]: { ...card, name: e.target.value } } }
                       setSettings(updated)
-                    }} className="w-40 rounded-lg border border-gray-300 px-2 py-1.5 text-sm" />
+                    }} className="min-h-10 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:w-40 sm:text-sm" />
                     <span className="text-xs text-gray-400">Limit:</span>
                     <input type="number" value={card.creditLimit} onChange={e => {
                       const updated = { ...settings, creditCards: { ...settings.creditCards, [id]: { ...card, creditLimit: Number(e.target.value) } } }
                       setSettings(updated)
-                    }} className="w-28 rounded-lg border border-gray-300 px-2 py-1.5 text-sm" />
+                    }} className="min-h-10 w-28 rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:text-sm" />
                     <button onClick={() => updateCard(id, card)} className="text-xs text-green-600 hover:underline font-medium">Save</button>
                     <button onClick={() => setEditingCard(null)} className="text-xs text-gray-400 hover:underline">Cancel</button>
                   </>
@@ -373,14 +423,14 @@ function PersonalTracker() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
-            <input type="text" value={newCard.name} onChange={e => setNewCard(f => ({ ...f, name: e.target.value }))} placeholder="Card name" className="w-40 rounded-lg border border-gray-300 px-2 py-1.5 text-sm" />
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-blue-50 p-2">
+            <input type="text" value={newCard.name} onChange={e => setNewCard(f => ({ ...f, name: e.target.value }))} placeholder="Card name" className="min-h-10 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:w-40 sm:text-sm" />
             <span className="text-xs text-gray-400">Limit:</span>
-            <input type="number" value={newCard.creditLimit} onChange={e => setNewCard(f => ({ ...f, creditLimit: e.target.value }))} placeholder="0" className="w-28 rounded-lg border border-gray-300 px-2 py-1.5 text-sm" />
-            <button onClick={addCard} className="text-xs text-blue-600 hover:underline font-medium">+ Add Card</button>
+            <input type="number" value={newCard.creditLimit} onChange={e => setNewCard(f => ({ ...f, creditLimit: e.target.value }))} placeholder="0" className="min-h-10 w-28 rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:text-sm" />
+            <button onClick={addCard} className="min-h-10 rounded-lg px-3 text-sm font-medium text-blue-600 hover:bg-blue-100">+ Add Card</button>
           </div>
 
-          <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+          <div className="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-2">
             <span className="text-sm text-gray-700">Billing cycle starts on:</span>
             <input
               type="number"
@@ -427,7 +477,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <p className="text-gray-500">Loading...</p>
       </div>
     )
@@ -435,8 +485,8 @@ export default function App() {
 
   if (isPersonal && !user) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-7xl px-3 py-4 sm:px-4 sm:py-8">
           <div className="mb-4">
             <a href="/" className="text-sm text-blue-600 hover:underline font-medium">&larr; Back to Shared Expenses</a>
           </div>
@@ -450,14 +500,14 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6">
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-8">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
               {isPersonal ? 'My Expenses' : 'Expenses Tracker'}
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
               {isPersonal ? 'Your personal expense tracker' : 'Track shared expenses between Lachitha & Sudewa'}
             </p>
           </div>

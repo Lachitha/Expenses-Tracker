@@ -18,6 +18,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
   const isExpense = form.type === 'expense'
   const isIncome = form.type === 'income'
   const isSettlement = form.type === 'settlement'
+  const isSaving = form.type === 'saving'
 
   const filteredCategories = categories.filter(c => {
     if (isIncome) return c.type === 'income'
@@ -47,6 +48,17 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
       paymentMethod: form.paymentMethod,
     }
 
+    if (isSaving) {
+      onSaveSavings({
+        id: transaction.id,
+        date: form.date,
+        amount: Number(form.amount),
+        description: form.description,
+      })
+      setForm({ date: today, type: 'expense', description: '', amount: '', category: '', paymentMethod: 'Cash', toCard: '', savingsAmount: '' })
+      return
+    }
+
     if (isSettlement) {
       transaction.toCard = form.toCard
     }
@@ -56,6 +68,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
     if (isIncome && Number(form.savingsAmount) > 0) {
       onSaveSavings({
         id: Date.now() + 1,
+        sourceTransactionId: transaction.id,
         date: form.date,
         amount: Number(form.savingsAmount),
         description: `Savings from ${form.description}`,
@@ -74,7 +87,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
     })
   }
 
-  const inputClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  const inputClass = "min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
   const labelClass = "block text-sm font-medium text-gray-700 mb-1"
 
   return (
@@ -91,6 +104,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
             <option value="expense">Expense</option>
             <option value="income">Income</option>
             <option value="settlement">Settlement</option>
+            <option value="saving">Savings</option>
           </select>
         </div>
         <div>
@@ -126,14 +140,14 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
           </div>
         )}
 
-        <div>
+        {!isSaving && <div>
           <label className={labelClass}>Payment Method</label>
           <select value={form.paymentMethod} onChange={e => update('paymentMethod', e.target.value)} className={inputClass} disabled={isSettlement}>
             {paymentMethods.map(pm => (
               <option key={pm.id} value={pm.name}>{pm.name}</option>
             ))}
           </select>
-        </div>
+        </div>}
 
         {isIncome && (
           <div>
@@ -144,7 +158,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
       </div>
       <div className="flex justify-end">
         <button type="submit" className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-          {isSettlement ? 'Record Settlement' : 'Add Transaction'}
+          {isSettlement ? 'Record Settlement' : isSaving ? 'Add to Savings' : 'Add Transaction'}
         </button>
       </div>
     </form>

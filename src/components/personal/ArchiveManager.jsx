@@ -86,18 +86,18 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
       {isSalaryDay && transactions.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
           <p className="text-sm text-amber-700 font-medium">It's salary day! Archive your current transactions to start fresh.</p>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               type="text"
               value={label}
               onChange={e => setLabel(e.target.value)}
               placeholder="Archive label (optional)"
-              className="flex-1 rounded-lg border border-amber-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="min-h-11 w-full flex-1 rounded-lg border border-amber-300 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 sm:text-sm"
             />
             <button
               onClick={handleArchive}
               disabled={archiving}
-              className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
+              className="min-h-11 rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
             >
               {archiving ? 'Archiving...' : 'Archive Now'}
             </button>
@@ -106,18 +106,18 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
       )}
 
       {!isSalaryDay && transactions.length > 0 && (
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             type="text"
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Archive label (optional)"
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-h-11 w-full flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
           />
           <button
             onClick={handleArchive}
             disabled={archiving || transactions.length === 0}
-            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="min-h-11 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {archiving ? 'Archiving...' : 'Archive Current'}
           </button>

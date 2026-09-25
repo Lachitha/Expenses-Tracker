@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 function getCycleDates(billingDay) {
   const now = new Date()
   const currentMonth = now.getMonth()
@@ -25,6 +27,7 @@ function inRange(dateStr, start, end) {
 }
 
 export default function PersonalDashboard({ transactions, settings, savings }) {
+  const [showSavings, setShowSavings] = useState(true)
   const totalIncome = transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + Number(t.amount), 0)
@@ -33,14 +36,17 @@ export default function PersonalDashboard({ transactions, settings, savings }) {
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + Number(t.amount), 0)
 
-  const totalSettlements = transactions
-    .filter(t => t.type === 'settlement')
-    .reduce((sum, t) => sum + Number(t.amount), 0)
-
-  const balance = totalIncome - totalExpenses - totalSettlements
   const totalSavings = savings.reduce((sum, s) => sum + Number(s.amount), 0)
 
   const creditCards = settings?.creditCards || {}
+  const creditCardNames = new Set(Object.values(creditCards).map(card => card.name))
+  const cashExpenses = transactions
+    .filter(t => t.type === 'expense' && !creditCardNames.has(t.paymentMethod))
+    .reduce((sum, t) => sum + Number(t.amount), 0)
+  const totalSettlements = transactions
+    .filter(t => t.type === 'settlement')
+    .reduce((sum, t) => sum + Number(t.amount), 0)
+  const balance = totalIncome - cashExpenses - totalSettlements - totalSavings
   const billingDay = settings?.billingCycleDay || 6
   const { thisCycleStart, thisCycleEnd, lastCycleStart, lastCycleEnd } = getCycleDates(billingDay)
 
@@ -106,23 +112,30 @@ export default function PersonalDashboard({ transactions, settings, savings }) {
   const summaryCards = [
     { label: 'Total Income', value: `Rs. ${totalIncome.toLocaleString()}`, color: 'bg-green-50 text-green-700 border-green-200' },
     { label: 'Total Expenses', value: `Rs. ${totalExpenses.toLocaleString()}`, color: 'bg-red-50 text-red-700 border-red-200' },
-    { label: 'Balance', value: `Rs. ${Math.abs(balance).toLocaleString()}`, color: balance >= 0 ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-orange-50 text-orange-700 border-orange-200' },
-    { label: 'Total Savings', value: `Rs. ${totalSavings.toLocaleString()}`, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    { label: 'Cash Balance', value: `Rs. ${balance.toLocaleString()}`, color: balance >= 0 ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-orange-50 text-orange-700 border-orange-200' },
+    { label: 'Total Savings', value: showSavings ? `Rs. ${totalSavings.toLocaleString()}` : '••••••', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   ]
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {summaryCards.map(c => (
-          <div key={c.label} className={`rounded-xl border p-3 sm:p-4 ${c.color}`}>
-            <p className="text-xs sm:text-sm font-medium opacity-75">{c.label}</p>
+          <div key={c.label} className={`rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4 ${c.color}`}>
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-xs sm:text-sm font-medium opacity-75">{c.label}</p>
+              {c.label === 'Total Savings' && (
+                <button type="button" onClick={() => setShowSavings(value => !value)} className="text-[10px] sm:text-xs underline opacity-75">
+                  {showSavings ? 'Hide' : 'Show'}
+                </button>
+              )}
+            </div>
             <p className="text-lg sm:text-2xl font-bold mt-1">{c.value}</p>
           </div>
         ))}
       </div>
 
       {cardData.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700">Credit Cards</h3>
             <span className="text-xs text-gray-400">Cycle: {billingDay}th - {billingDay}th</span>
@@ -162,9 +175,9 @@ export default function PersonalDashboard({ transactions, settings, savings }) {
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Savings History</h3>
           <div className="space-y-2">
             {savings.slice(-5).reverse().map(s => (
-              <div key={s.id} className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">{s.description}</span>
-                <span className="font-medium text-emerald-600">+ Rs. {Number(s.amount).toLocaleString()}</span>
+                <div key={s.id} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">{s.description}</span>
+                  <span className="font-medium text-emerald-600">{showSavings ? `+ Rs. ${Number(s.amount).toLocaleString()}` : '••••••'}</span>
               </div>
             ))}
           </div>

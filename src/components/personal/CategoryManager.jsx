@@ -37,17 +37,17 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
     setEditForm({ name: '', type: '' })
   }
 
-  const inputClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  const inputClass = "min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 space-y-4">
       <h2 className="text-base sm:text-lg font-semibold text-gray-800">Manage Categories & Payment Methods</h2>
 
       <div className="flex gap-2 border-b border-gray-200">
-        <button onClick={() => setActiveTab('categories')} className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'categories' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+        <button onClick={() => setActiveTab('categories')} className={`min-h-11 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'categories' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
           Categories
         </button>
-        <button onClick={() => setActiveTab('payment')} className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'payment' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+        <button onClick={() => setActiveTab('payment')} className={`min-h-11 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'payment' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
           Payment Methods
         </button>
       </div>
@@ -82,13 +82,13 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
             </div>
           </div>
 
-          <form onSubmit={handleAddCategory} className="flex gap-2">
+          <form onSubmit={handleAddCategory} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]">
             <input type="text" value={newCat.name} onChange={e => setNewCat(f => ({ ...f, name: e.target.value }))} placeholder="New category name" className={`${inputClass} flex-1`} />
-            <select value={newCat.type} onChange={e => setNewCat(f => ({ ...f, type: e.target.value }))} className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select value={newCat.type} onChange={e => setNewCat(f => ({ ...f, type: e.target.value }))} className="min-h-11 rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm">
               <option value="expense">Expense</option>
               <option value="income">Income</option>
             </select>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">Add</button>
+            <button type="submit" className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">Add Category</button>
           </form>
         </div>
       )}
@@ -118,9 +118,9 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
             </div>
           </div>
 
-          <form onSubmit={handleAddPayment} className="flex gap-2">
+          <form onSubmit={handleAddPayment} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
             <input type="text" value={newPm} onChange={e => setNewPm(e.target.value)} placeholder="New payment method" className={`${inputClass} flex-1`} />
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">Add</button>
+            <button type="submit" className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">Add Payment Method</button>
           </form>
         </div>
       )}
