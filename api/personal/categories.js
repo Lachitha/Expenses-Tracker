@@ -61,13 +61,14 @@ export async function GET(request) {
     const customCategories = allItems.filter(i => i.itemType === 'category' && !isBuiltinId(i.id));
     const customPaymentMethods = allItems.filter(i => i.itemType === 'paymentMethod' && !isBuiltinId(i.id));
     const overrides = allItems.filter(i => isBuiltinId(i.id));
+    const deletedBuiltins = new Set(overrides.filter(i => i.deleted).map(i => i.id));
 
-    const mergedCategories = DEFAULT_CATEGORIES.map(c => {
+    const mergedCategories = DEFAULT_CATEGORIES.filter(c => !deletedBuiltins.has(c.id)).map(c => {
       const override = overrides.find(o => o.id === c.id);
       return override ? { ...c, name: override.name, type: override.type || c.type } : c;
     }).concat(customCategories);
 
-    const mergedPaymentMethods = DEFAULT_PAYMENT_METHODS.map(p => {
+    const mergedPaymentMethods = DEFAULT_PAYMENT_METHODS.filter(p => !deletedBuiltins.has(p.id)).map(p => {
       const override = overrides.find(o => o.id === p.id);
       return override ? { ...p, name: override.name } : p;
     }).concat(customPaymentMethods);
@@ -164,8 +165,21 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    if (!id) return json({ error: 'Item ID is required' }, 400);
+
     if (isBuiltinId(id)) {
-      return json({ error: 'Cannot delete built-in items' }, 400);
+      const defaultItem = [...DEFAULT_CATEGORIES, ...DEFAULT_PAYMENT_METHODS].find(item => item.id === id);
+      await put(`categories/${user.id}/${id}.json`, JSON.stringify({
+        id,
+        itemType: isBuiltinCategory(id) ? 'category' : 'paymentMethod',
+        name: defaultItem.name,
+        deleted: true,
+      }), {
+        contentType: 'application/json',
+        access: 'private',
+        allowOverwrite: true,
+      });
+      return json({ success: true });
     }
     await del(`categories/${user.id}/${id}.json`);
     return json({ success: true });

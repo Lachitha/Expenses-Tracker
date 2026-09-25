@@ -74,7 +74,7 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
                       {c.name}
                       <span className={`text-[10px] px-1 rounded ${c.type === 'income' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>{c.type}</span>
                       <button onClick={() => startEdit(c)} className="ml-1 text-blue-400 hover:text-blue-600">&#9998;</button>
-                      {!c.builtin && <button onClick={() => onDelete(c.id)} className="text-blue-400 hover:text-red-500">&times;</button>}
+                      <button type="button" onClick={() => onDelete(c.id)} aria-label={`Delete ${c.name} category`} className="ml-1 inline-flex min-h-8 min-w-8 items-center justify-center rounded-full text-base text-blue-400 hover:bg-red-50 hover:text-red-600">&times;</button>
                     </span>
                   )}
                 </div>
@@ -110,7 +110,7 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${p.builtin ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>
                       {p.name}
                       <button onClick={() => startEdit(p)} className="ml-1 text-blue-400 hover:text-blue-600">&#9998;</button>
-                      {!p.builtin && <button onClick={() => onDelete(p.id)} className="text-blue-400 hover:text-red-500">&times;</button>}
+                      <button type="button" onClick={() => onDelete(p.id)} aria-label={`Delete ${p.name} payment method`} className="ml-1 inline-flex min-h-8 min-w-8 items-center justify-center rounded-full text-base text-blue-400 hover:bg-red-50 hover:text-red-600">&times;</button>
                     </span>
                   )}
                 </div>

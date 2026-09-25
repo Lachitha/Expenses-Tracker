@@ -235,6 +235,13 @@ function PersonalTracker() {
 
   const deleteCategory = async id => {
     const pm = paymentMethods.find(p => p.id === id)
+    const response = await fetch(`/api/personal/categories?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders })
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}))
+      showToast(data.error || 'Could not delete item', 'error')
+      return
+    }
+
     if (pm) {
       const cardEntry = Object.entries(settings?.creditCards || {}).find(([, c]) => c.name === pm.name)
       if (cardEntry) {
@@ -245,9 +252,9 @@ function PersonalTracker() {
         saveSettings(updated)
       }
     }
-    await fetch(`/api/personal/categories?id=${id}`, { method: 'DELETE', headers: authHeaders })
     setCategories(prev => prev.filter(c => c.id !== id))
     setPaymentMethods(prev => prev.filter(p => p.id !== id))
+    showToast('Deleted', 'success')
   }
 
   const saveSavings = t => {
