@@ -26,7 +26,7 @@ function getInstallmentStatus(installment) {
   return { remaining: Math.max(remaining, 0), paid, isActive, totalPaid: paid * installment.monthlyAmount }
 }
 
-export default function CreditCardDetail({ card, cardId, transactions, installments, settings, onAddInstallment, onDeleteInstallment, onClose }) {
+export default function CreditCardDetail({ card, cardId, transactions, installments, settings, paymentMethods = [], onAddInstallment, onDeleteInstallment, onClose }) {
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', monthlyAmount: '', totalMonths: '', startDate: new Date().toISOString().split('T')[0] })
 
@@ -39,7 +39,8 @@ export default function CreditCardDetail({ card, cardId, transactions, installme
   const categoryBreakdown = {}
 
   for (const t of transactions) {
-    if (t.paymentMethod === card.name && t.type === 'expense') {
+    const method = paymentMethods.find(pm => pm.name === t.paymentMethod)
+    if ((t.paymentMethod === card.name || method?.creditCardId === cardId || method?.creditCardId === card.name) && t.type === 'expense') {
       totalSpent += Number(t.amount)
       if (inRange(t.date, cycleStart, cycleEnd)) {
         cycleExpenses += Number(t.amount)

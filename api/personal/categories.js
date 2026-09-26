@@ -70,7 +70,7 @@ export async function GET(request) {
 
     const mergedPaymentMethods = DEFAULT_PAYMENT_METHODS.filter(p => !deletedBuiltins.has(p.id)).map(p => {
       const override = overrides.find(o => o.id === p.id);
-      return override ? { ...p, name: override.name } : p;
+      return override ? { ...p, name: override.name, creditCardId: override.creditCardId || '' } : p;
     }).concat(customPaymentMethods);
 
     return json({
@@ -94,6 +94,7 @@ export async function POST(request) {
       name: body.name,
       type: body.type,
       itemType: body.itemType,
+      creditCardId: body.creditCardId || '',
       builtin: false,
     };
 

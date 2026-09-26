@@ -28,12 +28,13 @@ function SmallPie({ data }) {
   )
 }
 
-function getCardStats(cardName, transactions) {
+function getCardStats(cardId, cardName, transactions, paymentMethods) {
   let spent = 0
   let settled = 0
   const byCategory = {}
   for (const t of transactions) {
-    if (t.paymentMethod === cardName && t.type === 'expense') {
+    const paymentMethod = paymentMethods.find(pm => pm.name === t.paymentMethod)
+    if ((t.paymentMethod === cardName || paymentMethod?.creditCardId === cardId || paymentMethod?.creditCardId === cardName) && t.type === 'expense') {
       spent += Number(t.amount)
       byCategory[t.category] = (byCategory[t.category] || 0) + Number(t.amount)
     }
@@ -44,7 +45,7 @@ function getCardStats(cardName, transactions) {
   return { spent, settled, byCategory }
 }
 
-export default function Charts({ transactions, settings, savings, installments = [], onCardClick }) {
+export default function Charts({ transactions, settings, savings, installments = [], onCardClick, categories = [], paymentMethods = [] }) {
   const [selectedCard, setSelectedCard] = useState('all')
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
@@ -59,7 +60,8 @@ export default function Charts({ transactions, settings, savings, installments =
   const byCategory = {}
   for (const t of transactions) {
     if (t.type === 'expense') {
-      byCategory[t.category] = (byCategory[t.category] || 0) + Number(t.amount)
+      const categoryName = categories.find(c => c.id === t.category)?.name || t.category
+      byCategory[categoryName] = (byCategory[categoryName] || 0) + Number(t.amount)
     }
   }
   const categoryData = Object.entries(byCategory)
@@ -70,7 +72,7 @@ export default function Charts({ transactions, settings, savings, installments =
   const cardEntries = Object.entries(creditCards)
 
   const allCardPieData = cardEntries.map(([_id, card]) => {
-    const stats = getCardStats(card.name, transactions)
+    const stats = getCardStats(_id, card.name, transactions, paymentMethods)
     const available = (card.creditLimit || 0) + stats.settled - stats.spent
     return { name: card.name, value: Math.max(available, 0) }
   }).filter(c => c.value > 0)
@@ -79,7 +81,7 @@ export default function Charts({ transactions, settings, savings, installments =
     ? (() => {
         const card = creditCards[selectedCard]
         if (!card) return null
-        const stats = getCardStats(card.name, transactions)
+        const stats = getCardStats(selectedCard, card.name, transactions, paymentMethods)
         const available = (card.creditLimit || 0) + stats.settled - stats.spent
         const data = []
         if (available > 0) data.push({ name: 'Available', value: available })
@@ -130,7 +132,7 @@ export default function Charts({ transactions, settings, savings, installments =
           {selectedCard === 'all' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {cardEntries.map(([id, card]) => {
-                const stats = getCardStats(card.name, transactions)
+                const stats = getCardStats(id, card.name, transactions, paymentMethods)
                 const available = (card.creditLimit || 0) + stats.settled - stats.spent
                 const cardPie = []
                 if (available > 0) cardPie.push({ name: 'Available', value: available })

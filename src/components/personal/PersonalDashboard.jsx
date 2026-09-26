@@ -26,7 +26,7 @@ function inRange(dateStr, start, end) {
   return d >= start && d < end
 }
 
-export default function PersonalDashboard({ transactions, settings, savings }) {
+export default function PersonalDashboard({ transactions, settings, savings, categories = [], paymentMethods = [] }) {
   const [showSavings, setShowSavings] = useState(true)
   const totalIncome = transactions
     .filter(t => t.type === 'income')
@@ -39,7 +39,13 @@ export default function PersonalDashboard({ transactions, settings, savings }) {
   const totalSavings = savings.reduce((sum, s) => sum + Number(s.amount), 0)
 
   const creditCards = settings?.creditCards || {}
-  const creditCardNames = new Set(Object.values(creditCards).map(card => card.name))
+  const isCardPayment = (method, cardId, cardName) => method === cardName || paymentMethods.some(pm =>
+    pm.name === method && (pm.creditCardId === cardId || pm.creditCardId === cardName)
+  )
+  const creditCardNames = new Set([
+    ...Object.values(creditCards).map(card => card.name),
+    ...paymentMethods.filter(pm => pm.creditCardId).map(pm => pm.name),
+  ])
   const cashExpenses = transactions
     .filter(t => t.type === 'expense' && !creditCardNames.has(t.paymentMethod))
     .reduce((sum, t) => sum + Number(t.amount), 0)
@@ -61,7 +67,7 @@ export default function PersonalDashboard({ transactions, settings, savings }) {
     let lastCycleSettled = 0
 
     for (const t of transactions) {
-      if (t.paymentMethod === card.name && t.type === 'expense') {
+      if (isCardPayment(t.paymentMethod, cardId, card.name) && t.type === 'expense') {
         totalExpensesOnCard += Number(t.amount)
         if (inRange(t.date, thisCycleStart, thisCycleEnd)) {
           thisCycleSpent += Number(t.amount)
@@ -100,7 +106,8 @@ export default function PersonalDashboard({ transactions, settings, savings }) {
 
   for (const t of transactions) {
     if (t.type === 'expense') {
-      byCategory[t.category] = (byCategory[t.category] || 0) + Number(t.amount)
+      const categoryName = categories.find(c => c.id === t.category)?.name || t.category
+      byCategory[categoryName] = (byCategory[categoryName] || 0) + Number(t.amount)
       byPayment[t.paymentMethod] = (byPayment[t.paymentMethod] || 0) + Number(t.amount)
     }
   }

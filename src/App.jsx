@@ -355,8 +355,8 @@ function PersonalTracker() {
         </div>
       </div>
 
-      <Charts transactions={transactions} settings={settings} savings={savings} installments={installments} onCardClick={setSelectedCard} />
-      <PersonalDashboard transactions={transactions} settings={settings} savings={savings} />
+      <Charts transactions={transactions} settings={settings} savings={savings} installments={installments} onCardClick={setSelectedCard} categories={categories} paymentMethods={paymentMethods} />
+      <PersonalDashboard transactions={transactions} settings={settings} savings={savings} categories={categories} paymentMethods={paymentMethods} />
       <PersonalTransactionForm onAdd={addTransaction} categories={categories} paymentMethods={paymentMethods} settings={settings} onSaveSavings={saveSavings} />
       <PersonalTransactionTable
         transactions={transactions}
@@ -388,6 +388,7 @@ function PersonalTracker() {
           <CategoryManager
             categories={categories}
             paymentMethods={paymentMethods}
+            creditCards={Object.entries(settings?.creditCards || {}).map(([id, card]) => ({ id, ...card }))}
             onAdd={addCategory}
             onEdit={editCategory}
             onDelete={deleteCategory}
@@ -462,6 +463,7 @@ function PersonalTracker() {
           transactions={transactions}
           installments={installments}
           settings={settings}
+          paymentMethods={paymentMethods}
           onAddInstallment={addInstallment}
           onDeleteInstallment={deleteInstallment}
           onClose={() => setSelectedCard(null)}

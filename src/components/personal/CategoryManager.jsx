@@ -1,8 +1,9 @@
 import { useState } from 'react'
 
-export default function CategoryManager({ categories, paymentMethods, onAdd, onEdit, onDelete }) {
+export default function CategoryManager({ categories, paymentMethods, creditCards = [], onAdd, onEdit, onDelete }) {
   const [newCat, setNewCat] = useState({ name: '', type: 'expense' })
   const [newPm, setNewPm] = useState('')
+  const [newPmCreditCardId, setNewPmCreditCardId] = useState('')
   const [activeTab, setActiveTab] = useState('categories')
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({ name: '', type: '' })
@@ -17,13 +18,14 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
   const handleAddPayment = async e => {
     e.preventDefault()
     if (!newPm.trim()) return
-    await onAdd({ name: newPm.trim(), itemType: 'paymentMethod' })
+    await onAdd({ name: newPm.trim(), itemType: 'paymentMethod', creditCardId: newPmCreditCardId })
     setNewPm('')
+    setNewPmCreditCardId('')
   }
 
   const startEdit = item => {
     setEditingId(item.id)
-    setEditForm({ name: item.name, type: item.type || '' })
+    setEditForm({ name: item.name, type: item.type || '', creditCardId: item.creditCardId || '' })
   }
 
   const saveEdit = async id => {
@@ -97,14 +99,19 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
         <div className="space-y-4">
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Payment Methods</h3>
+            <p className="mb-3 text-xs text-gray-500">Link a payment method to a credit card to count purchases against that card instead of cash.</p>
             <div className="space-y-2">
               {paymentMethods.map(p => (
-                <div key={p.id} className="flex items-center gap-2">
+                <div key={p.id} className="flex flex-wrap items-center gap-2">
                   {editingId === p.id ? (
                     <>
                       <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={`${inputClass} flex-1`} />
-                      <button onClick={() => saveEdit(p.id)} className="text-xs text-green-600 hover:underline">Save</button>
-                      <button onClick={cancelEdit} className="text-xs text-gray-400 hover:underline">Cancel</button>
+                      <select value={editForm.creditCardId || ''} onChange={e => setEditForm(f => ({ ...f, creditCardId: e.target.value }))} className={inputClass}>
+                        <option value="">Cash / Not a credit card</option>
+                        {creditCards.map(card => <option key={card.id} value={card.id}>Use credit: {card.name}</option>)}
+                      </select>
+                      <button type="button" onClick={() => saveEdit(p.id)} className="min-h-10 rounded-lg px-3 text-sm font-medium text-green-700 hover:bg-green-50">Save</button>
+                      <button type="button" onClick={cancelEdit} className="min-h-10 rounded-lg px-3 text-sm text-gray-500 hover:bg-gray-100">Cancel</button>
                     </>
                   ) : (
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${p.builtin ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -118,9 +125,13 @@ export default function CategoryManager({ categories, paymentMethods, onAdd, onE
             </div>
           </div>
 
-          <form onSubmit={handleAddPayment} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
-            <input type="text" value={newPm} onChange={e => setNewPm(e.target.value)} placeholder="New payment method" className={`${inputClass} flex-1`} />
-            <button type="submit" className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">Add Payment Method</button>
+          <form onSubmit={handleAddPayment} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <input type="text" value={newPm} onChange={e => setNewPm(e.target.value)} placeholder="New payment method" className={inputClass} />
+            <select value={newPmCreditCardId} onChange={e => setNewPmCreditCardId(e.target.value)} className={inputClass}>
+              <option value="">Cash / Not a credit card</option>
+              {creditCards.map(card => <option key={card.id} value={card.id}>Use credit: {card.name}</option>)}
+            </select>
+            <button type="submit" className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 sm:col-span-2">Add Payment Method</button>
           </form>
         </div>
       )}
