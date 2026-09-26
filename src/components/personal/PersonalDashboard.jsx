@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isExternalPaymentMethod, isPaymentMethodForCard } from '../../utils/personalPayments'
 
 function getCycleDates(billingDay) {
   const now = new Date()
@@ -39,15 +40,9 @@ export default function PersonalDashboard({ transactions, settings, savings, cat
   const totalSavings = savings.reduce((sum, s) => sum + Number(s.amount), 0)
 
   const creditCards = settings?.creditCards || {}
-  const isCardPayment = (method, cardId, cardName) => method === cardName || paymentMethods.some(pm =>
-    pm.name === method && (pm.creditCardId === cardId || pm.creditCardId === cardName)
-  )
-  const creditCardNames = new Set([
-    ...Object.values(creditCards).map(card => card.name),
-    ...paymentMethods.filter(pm => pm.creditCardId).map(pm => pm.name),
-  ])
   const cashExpenses = transactions
-    .filter(t => t.type === 'expense' && !creditCardNames.has(t.paymentMethod))
+    .filter(t => t.type === 'expense' && !isExternalPaymentMethod(t.paymentMethod, paymentMethods) &&
+      !Object.entries(creditCards).some(([cardId, card]) => isPaymentMethodForCard(t.paymentMethod, cardId, card.name, paymentMethods)))
     .reduce((sum, t) => sum + Number(t.amount), 0)
   const totalSettlements = transactions
     .filter(t => t.type === 'settlement')
@@ -67,7 +62,7 @@ export default function PersonalDashboard({ transactions, settings, savings, cat
     let lastCycleSettled = 0
 
     for (const t of transactions) {
-      if (isCardPayment(t.paymentMethod, cardId, card.name) && t.type === 'expense') {
+      if (isPaymentMethodForCard(t.paymentMethod, cardId, card.name, paymentMethods) && t.type === 'expense') {
         totalExpensesOnCard += Number(t.amount)
         if (inRange(t.date, thisCycleStart, thisCycleEnd)) {
           thisCycleSpent += Number(t.amount)

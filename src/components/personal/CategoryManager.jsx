@@ -4,6 +4,7 @@ export default function CategoryManager({ categories, paymentMethods, creditCard
   const [newCat, setNewCat] = useState({ name: '', type: 'expense' })
   const [newPm, setNewPm] = useState('')
   const [newPmCreditCardId, setNewPmCreditCardId] = useState('')
+  const [newPmBalanceTreatment, setNewPmBalanceTreatment] = useState('cash')
   const [activeTab, setActiveTab] = useState('categories')
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({ name: '', type: '' })
@@ -18,19 +19,34 @@ export default function CategoryManager({ categories, paymentMethods, creditCard
   const handleAddPayment = async e => {
     e.preventDefault()
     if (!newPm.trim()) return
-    await onAdd({ name: newPm.trim(), itemType: 'paymentMethod', creditCardId: newPmCreditCardId })
+    const balanceTreatment = newPm.trim().toLowerCase() === 'sudewa' ? 'external' : newPmBalanceTreatment
+    await onAdd({
+      name: newPm.trim(),
+      itemType: 'paymentMethod',
+      balanceTreatment,
+      creditCardId: balanceTreatment === 'card' ? newPmCreditCardId : '',
+    })
     setNewPm('')
     setNewPmCreditCardId('')
+    setNewPmBalanceTreatment('cash')
   }
 
   const startEdit = item => {
     setEditingId(item.id)
-    setEditForm({ name: item.name, type: item.type || '', creditCardId: item.creditCardId || '' })
+    setEditForm({
+      name: item.name,
+      type: item.type || '',
+      creditCardId: item.creditCardId || '',
+      balanceTreatment: item.balanceTreatment || (item.name.trim().toLowerCase() === 'sudewa' ? 'external' : item.creditCardId ? 'card' : 'cash'),
+    })
   }
 
   const saveEdit = async id => {
     if (!editForm.name.trim()) return
-    await onEdit(id, editForm)
+    await onEdit(id, {
+      ...editForm,
+      creditCardId: editForm.balanceTreatment === 'card' ? editForm.creditCardId : '',
+    })
     setEditingId(null)
   }
 
@@ -99,17 +115,24 @@ export default function CategoryManager({ categories, paymentMethods, creditCard
         <div className="space-y-4">
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Payment Methods</h3>
-            <p className="mb-3 text-xs text-gray-500">Link a payment method to a credit card to count purchases against that card instead of cash.</p>
+            <p className="mb-3 text-xs text-gray-500">Choose whether purchases affect cash, use a credit card, or were paid by someone else. Someone-else payments are tracked as expenses but do not change your balances.</p>
             <div className="space-y-2">
               {paymentMethods.map(p => (
                 <div key={p.id} className="flex flex-wrap items-center gap-2">
                   {editingId === p.id ? (
                     <>
                       <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={`${inputClass} flex-1`} />
-                      <select value={editForm.creditCardId || ''} onChange={e => setEditForm(f => ({ ...f, creditCardId: e.target.value }))} className={inputClass}>
-                        <option value="">Cash / Not a credit card</option>
-                        {creditCards.map(card => <option key={card.id} value={card.id}>Use credit: {card.name}</option>)}
+                      <select value={editForm.balanceTreatment || 'cash'} onChange={e => setEditForm(f => ({ ...f, balanceTreatment: e.target.value }))} className={inputClass}>
+                        <option value="cash">Cash / Debit (reduces cash)</option>
+                        <option value="external">Paid by someone else (no balance impact)</option>
+                        <option value="card">Credit card purchase</option>
                       </select>
+                      {editForm.balanceTreatment === 'card' && (
+                        <select value={editForm.creditCardId || ''} onChange={e => setEditForm(f => ({ ...f, creditCardId: e.target.value }))} className={inputClass} required>
+                          <option value="">Select credit card...</option>
+                          {creditCards.map(card => <option key={card.id} value={card.id}>{card.name}</option>)}
+                        </select>
+                      )}
                       <button type="button" onClick={() => saveEdit(p.id)} className="min-h-10 rounded-lg px-3 text-sm font-medium text-green-700 hover:bg-green-50">Save</button>
                       <button type="button" onClick={cancelEdit} className="min-h-10 rounded-lg px-3 text-sm text-gray-500 hover:bg-gray-100">Cancel</button>
                     </>
@@ -127,10 +150,17 @@ export default function CategoryManager({ categories, paymentMethods, creditCard
 
           <form onSubmit={handleAddPayment} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <input type="text" value={newPm} onChange={e => setNewPm(e.target.value)} placeholder="New payment method" className={inputClass} />
-            <select value={newPmCreditCardId} onChange={e => setNewPmCreditCardId(e.target.value)} className={inputClass}>
-              <option value="">Cash / Not a credit card</option>
-              {creditCards.map(card => <option key={card.id} value={card.id}>Use credit: {card.name}</option>)}
+            <select value={newPmBalanceTreatment} onChange={e => setNewPmBalanceTreatment(e.target.value)} className={inputClass}>
+              <option value="cash">Cash / Debit (reduces cash)</option>
+              <option value="external">Paid by someone else (no balance impact)</option>
+              <option value="card">Credit card purchase</option>
             </select>
+            {newPmBalanceTreatment === 'card' && (
+              <select value={newPmCreditCardId} onChange={e => setNewPmCreditCardId(e.target.value)} className={inputClass} required>
+                <option value="">Select credit card...</option>
+                {creditCards.map(card => <option key={card.id} value={card.id}>{card.name}</option>)}
+              </select>
+            )}
             <button type="submit" className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 sm:col-span-2">Add Payment Method</button>
           </form>
         </div>

@@ -95,6 +95,7 @@ export async function POST(request) {
       type: body.type,
       itemType: body.itemType,
       creditCardId: body.creditCardId || '',
+      balanceTreatment: body.balanceTreatment || '',
       builtin: false,
     };
 

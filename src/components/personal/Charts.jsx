@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { isPaymentMethodForCard } from '../../utils/personalPayments'
 
 const COLORS = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16']
 
@@ -33,8 +34,7 @@ function getCardStats(cardId, cardName, transactions, paymentMethods) {
   let settled = 0
   const byCategory = {}
   for (const t of transactions) {
-    const paymentMethod = paymentMethods.find(pm => pm.name === t.paymentMethod)
-    if ((t.paymentMethod === cardName || paymentMethod?.creditCardId === cardId || paymentMethod?.creditCardId === cardName) && t.type === 'expense') {
+    if (isPaymentMethodForCard(t.paymentMethod, cardId, cardName, paymentMethods) && t.type === 'expense') {
       spent += Number(t.amount)
       byCategory[t.category] = (byCategory[t.category] || 0) + Number(t.amount)
     }
