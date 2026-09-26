@@ -7,9 +7,21 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
   const [selectedArchive, setSelectedArchive] = useState(null)
   const [archiving, setArchiving] = useState(false)
   const [label, setLabel] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const now = new Date()
-  const isSalaryDay = now.getDate() === 25
+  const cycleResetAt = settings?.cycleStartDate ? new Date(`${settings.cycleStartDate}T00:00:00`) : null
+  const alreadyResetThisMonth = cycleResetAt && cycleResetAt.getFullYear() === now.getFullYear() && cycleResetAt.getMonth() === now.getMonth()
+  const autoResetDue = now.getDate() >= 25 && !alreadyResetThisMonth
+  const activeTransactions = transactions.filter(transaction => transaction.type !== 'saving')
+  const promptKey = `personal-cycle-reset-dismissed-${now.getFullYear()}-${now.getMonth() + 1}`
+  const resetDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  useEffect(() => {
+    if (autoResetDue && activeTransactions.length > 0 && sessionStorage.getItem(promptKey) !== 'dismissed') {
+      setConfirmOpen(true)
+    }
+  }, [autoResetDue, activeTransactions.length, promptKey])
 
   useEffect(() => {
     if (!authHeaders.Authorization) return
@@ -23,30 +35,37 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
   }, [authHeaders])
 
   const handleArchive = async () => {
-    if (transactions.length === 0) return
+    if (activeTransactions.length === 0) return
     setArchiving(true)
 
-    const archiveLabel = label.trim() || `Archive ${now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
-
-    const res = await fetch('/api/personal/archives', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({
-        label: archiveLabel,
-        transactions,
-        savings,
-        settings,
-      }),
-    })
-
-    if (res.ok) {
+    try {
+      const archiveLabel = label.trim() || `Archive ${now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+      const res = await fetch('/api/personal/archives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ label: archiveLabel, transactions, savings, settings }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast(data.error || 'Could not archive transactions', 'error')
+        return
+      }
       const archive = await res.json()
       setArchives(prev => [archive, ...prev])
       setLabel('')
-      onArchiveComplete()
-      showToast('Archived successfully', 'success')
+      setConfirmOpen(false)
+      onArchiveComplete(resetDate)
+      showToast('Archived successfully. Savings were kept.', 'success')
+    } catch {
+      showToast('Could not archive transactions', 'error')
+    } finally {
+      setArchiving(false)
     }
-    setArchiving(false)
+  }
+
+  const cancelReset = () => {
+    if (autoResetDue) sessionStorage.setItem(promptKey, 'dismissed')
+    setConfirmOpen(false)
   }
 
   const handleDeleteArchive = async id => {
@@ -74,7 +93,7 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
       <div className="flex items-center justify-between">
         <h2 className="text-base sm:text-lg font-semibold text-gray-800">Archives</h2>
         <div className="flex gap-2">
-          {isSalaryDay && transactions.length > 0 && (
+          {autoResetDue && activeTransactions.length > 0 && (
             <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">Salary Day!</span>
           )}
           <button onClick={() => setShowArchive(!showArchive)} className="text-sm text-blue-600 hover:underline font-medium">
@@ -83,7 +102,7 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
         </div>
       </div>
 
-      {isSalaryDay && transactions.length > 0 && (
+      {autoResetDue && activeTransactions.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
           <p className="text-sm text-amber-700 font-medium">It's salary day! Archive your current transactions to start fresh.</p>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -95,7 +114,7 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
               className="min-h-11 w-full flex-1 rounded-lg border border-amber-300 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-amber-500 sm:text-sm"
             />
             <button
-              onClick={handleArchive}
+              onClick={() => setConfirmOpen(true)}
               disabled={archiving}
               className="min-h-11 rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
             >
@@ -105,7 +124,7 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
         </div>
       )}
 
-      {!isSalaryDay && transactions.length > 0 && (
+      {!autoResetDue && activeTransactions.length > 0 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             type="text"
@@ -115,8 +134,8 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
             className="min-h-11 w-full flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
           />
           <button
-            onClick={handleArchive}
-            disabled={archiving || transactions.length === 0}
+            onClick={() => setConfirmOpen(true)}
+            disabled={archiving || activeTransactions.length === 0}
             className="min-h-11 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {archiving ? 'Archiving...' : 'Archive Current'}
@@ -193,6 +212,23 @@ export default function ArchiveManager({ authHeaders, transactions, savings, set
               <button onClick={() => handleDeleteArchive(a.id)} className="text-gray-400 hover:text-red-500 text-sm px-2">&times;</button>
             </div>
           ))}
+        </div>
+      )}
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="cycle-reset-title" className="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-xl">
+            <div>
+              <h3 id="cycle-reset-title" className="text-lg font-semibold text-gray-900">Confirm monthly reset</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">Your current income, expenses, settlements, and card activity will be saved to Archives and cleared for a fresh cycle. Your savings balance and savings history will be preserved.</p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={cancelReset} disabled={archiving} className="min-h-11 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700">Keep current cycle</button>
+              <button type="button" onClick={handleArchive} disabled={archiving} className="min-h-11 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+                {archiving ? 'Archiving...' : 'Archive and reset'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

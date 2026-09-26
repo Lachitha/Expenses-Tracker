@@ -279,10 +279,16 @@ function PersonalTracker() {
     showToast('Settings saved', 'success')
   }
 
-  const handleArchiveComplete = () => {
-    setTransactions([])
-    setSavings([])
-    showToast('Transactions archived. Starting fresh!', 'success')
+  const handleArchiveComplete = resetDate => {
+    setTransactions(prev => prev.filter(transaction => transaction.type === 'saving'))
+    const updatedSettings = { ...settings, cycleStartDate: resetDate }
+    setSettings(updatedSettings)
+    fetch('/api/personal/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(updatedSettings),
+    })
+    showToast('Cycle archived. Starting fresh; savings are preserved.', 'success')
   }
 
   const addInstallment = async data => {
@@ -411,7 +417,7 @@ function PersonalTracker() {
                       setSettings(updated)
                     }} className="min-h-10 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:w-40 sm:text-sm" />
                     <span className="text-xs text-gray-400">Limit:</span>
-                    <input type="number" value={card.creditLimit} onChange={e => {
+                    <input type="number" inputMode="decimal" value={card.creditLimit} onChange={e => {
                       const updated = { ...settings, creditCards: { ...settings.creditCards, [id]: { ...card, creditLimit: Number(e.target.value) } } }
                       setSettings(updated)
                     }} className="min-h-10 w-28 rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:text-sm" />
@@ -434,7 +440,7 @@ function PersonalTracker() {
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-blue-50 p-2">
             <input type="text" value={newCard.name} onChange={e => setNewCard(f => ({ ...f, name: e.target.value }))} placeholder="Card name" className="min-h-10 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:w-40 sm:text-sm" />
             <span className="text-xs text-gray-400">Limit:</span>
-            <input type="number" value={newCard.creditLimit} onChange={e => setNewCard(f => ({ ...f, creditLimit: e.target.value }))} placeholder="0" className="min-h-10 w-28 rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:text-sm" />
+            <input type="number" inputMode="decimal" value={newCard.creditLimit} onChange={e => setNewCard(f => ({ ...f, creditLimit: e.target.value }))} placeholder="0" className="min-h-10 w-28 rounded-lg border border-gray-300 px-2 py-1.5 text-base sm:text-sm" />
             <button onClick={addCard} className="min-h-10 rounded-lg px-3 text-sm font-medium text-blue-600 hover:bg-blue-100">+ Add Card</button>
           </div>
 

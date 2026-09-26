@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { isExternalPaymentMethod, isPaymentMethodForCard } from '../../utils/personalPayments'
+import { getAvailableCredit } from '../../utils/creditCards'
 
 function getCycleDates(billingDay) {
   const now = new Date()
@@ -47,7 +48,11 @@ export default function PersonalDashboard({ transactions, settings, savings, cat
   const totalSettlements = transactions
     .filter(t => t.type === 'settlement')
     .reduce((sum, t) => sum + Number(t.amount), 0)
-  const balance = totalIncome - cashExpenses - totalSettlements - totalSavings
+  const cycleStartDate = settings?.cycleStartDate
+  const cycleSavings = savings
+    .filter(s => !cycleStartDate || s.date >= cycleStartDate)
+    .reduce((sum, s) => sum + Number(s.amount), 0)
+  const balance = totalIncome - cashExpenses - totalSettlements - cycleSavings
   const billingDay = settings?.billingCycleDay || 6
   const { thisCycleStart, thisCycleEnd, lastCycleStart, lastCycleEnd } = getCycleDates(billingDay)
 
@@ -82,7 +87,7 @@ export default function PersonalDashboard({ transactions, settings, savings, cat
       }
     }
 
-    const availableBalance = limit + totalSettlementsOnCard - totalExpensesOnCard
+    const availableBalance = getAvailableCredit(limit, totalSettlementsOnCard, totalExpensesOnCard)
     const lastCycleOutstanding = lastCycleSpent - lastCycleSettled
 
     return {

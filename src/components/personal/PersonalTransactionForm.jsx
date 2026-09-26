@@ -113,7 +113,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
         </div>
         <div>
           <label className={labelClass}>Amount (Rs.)</label>
-          <input type="number" value={form.amount} onChange={e => update('amount', e.target.value)} placeholder="0" min="0" className={inputClass} required />
+          <input type="number" inputMode="decimal" value={form.amount} onChange={e => update('amount', e.target.value)} placeholder="0" min="0" step="any" className={inputClass} required />
         </div>
 
         {(isExpense || isIncome) && (
@@ -152,7 +152,7 @@ export default function PersonalTransactionForm({ onAdd, categories, paymentMeth
         {isIncome && (
           <div>
             <label className={labelClass}>Savings Amount (Rs.)</label>
-            <input type="number" value={form.savingsAmount} onChange={e => update('savingsAmount', e.target.value)} placeholder="0" min="0" className={inputClass} />
+            <input type="number" inputMode="decimal" value={form.savingsAmount} onChange={e => update('savingsAmount', e.target.value)} placeholder="0" min="0" step="any" className={inputClass} />
           </div>
         )}
       </div>

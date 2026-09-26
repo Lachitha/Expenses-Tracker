@@ -185,7 +185,7 @@ export default function PersonalTransactionTable({ transactions, onDelete, onEdi
                 <input type="date" value={form.date || ''} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" required />
               </label>
               <label className="text-sm font-medium text-gray-700">Amount (Rs.)
-                <input type="number" min="0.01" step="0.01" value={form.amount ?? ''} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" required />
+                <input type="number" inputMode="decimal" min="0.01" step="any" value={form.amount ?? ''} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" required />
               </label>
               <label className="text-sm font-medium text-gray-700 sm:col-span-2">Description
                 <input type="text" value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" required />

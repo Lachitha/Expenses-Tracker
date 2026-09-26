@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { isPaymentMethodForCard } from '../../utils/personalPayments'
+import { getAvailableCredit } from '../../utils/creditCards'
 
 function getCycleDates(billingDay) {
   const now = new Date()
@@ -53,7 +54,7 @@ export default function CreditCardDetail({ card, cardId, transactions, installme
   }
 
   const creditLimit = card.creditLimit || 0
-  const available = creditLimit + totalSettled - totalSpent
+  const available = getAvailableCredit(creditLimit, totalSettled, totalSpent)
 
   const cardInstallments = installments.filter(i => i.cardId === cardId)
   const activeInstallments = cardInstallments.filter(i => getInstallmentStatus(i).isActive)
@@ -150,7 +151,7 @@ export default function CreditCardDetail({ card, cardId, transactions, installme
             <form onSubmit={handleSubmit} className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
               <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Laptop EMI" className={inputClass} required />
               <div className="grid grid-cols-2 gap-2">
-                <input type="number" value={form.monthlyAmount} onChange={e => setForm(f => ({ ...f, monthlyAmount: e.target.value }))} placeholder="Monthly amount" min="0" className={inputClass} required />
+                <input type="number" inputMode="decimal" value={form.monthlyAmount} onChange={e => setForm(f => ({ ...f, monthlyAmount: e.target.value }))} placeholder="Monthly amount" min="0" step="any" className={inputClass} required />
                 <input type="number" value={form.totalMonths} onChange={e => setForm(f => ({ ...f, totalMonths: e.target.value }))} placeholder="Total months" min="1" className={inputClass} required />
               </div>
               <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className={inputClass} required />

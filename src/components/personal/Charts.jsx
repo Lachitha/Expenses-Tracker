@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { isPaymentMethodForCard } from '../../utils/personalPayments'
+import { getAvailableCredit } from '../../utils/creditCards'
 
 const COLORS = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16']
 
@@ -73,7 +74,7 @@ export default function Charts({ transactions, settings, savings, installments =
 
   const allCardPieData = cardEntries.map(([_id, card]) => {
     const stats = getCardStats(_id, card.name, transactions, paymentMethods)
-    const available = (card.creditLimit || 0) + stats.settled - stats.spent
+    const available = getAvailableCredit(card.creditLimit, stats.settled, stats.spent)
     return { name: card.name, value: Math.max(available, 0) }
   }).filter(c => c.value > 0)
 
@@ -82,7 +83,7 @@ export default function Charts({ transactions, settings, savings, installments =
         const card = creditCards[selectedCard]
         if (!card) return null
         const stats = getCardStats(selectedCard, card.name, transactions, paymentMethods)
-        const available = (card.creditLimit || 0) + stats.settled - stats.spent
+        const available = getAvailableCredit(card.creditLimit, stats.settled, stats.spent)
         const data = []
         if (available > 0) data.push({ name: 'Available', value: available })
         if (stats.spent > 0) data.push({ name: 'Spent', value: stats.spent })
@@ -133,7 +134,7 @@ export default function Charts({ transactions, settings, savings, installments =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {cardEntries.map(([id, card]) => {
                 const stats = getCardStats(id, card.name, transactions, paymentMethods)
-                const available = (card.creditLimit || 0) + stats.settled - stats.spent
+                const available = getAvailableCredit(card.creditLimit, stats.settled, stats.spent)
                 const cardPie = []
                 if (available > 0) cardPie.push({ name: 'Available', value: available })
                 if (stats.spent > 0) cardPie.push({ name: 'Spent', value: stats.spent })
@@ -172,7 +173,7 @@ export default function Charts({ transactions, settings, savings, installments =
                   <div className="bg-green-50 rounded-lg p-3">
                     <div className="text-xs text-green-500">Available</div>
                     <div className="text-lg font-bold text-green-700">
-                      Rs. {Math.max((selectedCardData.card.creditLimit || 0) + selectedCardData.stats.settled - selectedCardData.stats.spent, 0).toLocaleString()}
+                      Rs. {Math.max(getAvailableCredit(selectedCardData.card.creditLimit, selectedCardData.stats.settled, selectedCardData.stats.spent), 0).toLocaleString()}
                     </div>
                   </div>
                   <div className="bg-red-50 rounded-lg p-3">
